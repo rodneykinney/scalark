@@ -34,21 +34,21 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
 
     // Mean-value model is log(3/2)
     trainer.nextIteration()
-    rows.foreach(r => assertWithin(trainer.model.eval(r), math.log(1.5), tol))
+    rows.foreach(r => assertWithin(trainer.model.eval(r.features), math.log(1.5), tol))
 
     // After one iteration, tree splits the range into three nodes
     trainer.nextIteration()
-    assertWithin(trainer.model.eval(rows(0)), math.log(1.5) + 5. / 3, tol)
-    assertWithin(trainer.model.eval(rows(4)), math.log(1.5) + 5. / 3, tol)
-    assertWithin(trainer.model.eval(rows(1)), math.log(1.5) - 10. / 9, tol)
-    assertWithin(trainer.model.eval(rows(2)), math.log(1.5) - 10. / 9, tol)
-    assertWithin(trainer.model.eval(rows(3)), math.log(1.5) - 10. / 9, tol)
+    assertWithin(trainer.model.eval(rows(0).features), math.log(1.5) + 5. / 3, tol)
+    assertWithin(trainer.model.eval(rows(4).features), math.log(1.5) + 5. / 3, tol)
+    assertWithin(trainer.model.eval(rows(1).features), math.log(1.5) - 10. / 9, tol)
+    assertWithin(trainer.model.eval(rows(2).features), math.log(1.5) - 10. / 9, tol)
+    assertWithin(trainer.model.eval(rows(3).features), math.log(1.5) - 10. / 9, tol)
 
     // Middle range should converge to log(0.5)
-    var delta = math.abs(trainer.model.eval(rows(1)) - math.log(0.5))
+    var delta = math.abs(trainer.model.eval(rows(1).features) - math.log(0.5))
     for (i <- (1 to 3)) {
       trainer.nextIteration()
-      val newDelta = math.abs(trainer.model.eval(rows(1)) - math.log(0.5))
+      val newDelta = math.abs(trainer.model.eval(rows(1).features) - math.log(0.5))
       assert(newDelta < delta)
       delta = newDelta
     }
@@ -64,8 +64,8 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val cost = new LogLogisticLoss()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows.toSortedColumns)
     val models = (0 until config.iterationCount) map (i => { trainer.nextIteration(); trainer.model })
-    val errorCount = models map (m => rows.count(r => m.eval(r) > 0 ^ r.label))
-    val losses = models map (m => cost.totalCost(rows, id => m.eval(rows(id))))
+    val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
+    val losses = models map (m => cost.totalCost(rows, id => m.eval(rows(id).features)))
     // Losses should decrease monotonically on the training data
     for (i <- (1 until losses.length)) {
       assert(losses(i) < losses(i - 1))
@@ -78,8 +78,8 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val cost = new LogLogisticLoss()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows.toSortedColumns)
     val models = (0 until config.iterationCount) map (i => { trainer.nextIteration(); trainer.model })
-    val errorCount = models map (m => rows.count(r => m.eval(r) > 0 ^ r.label))
-    val losses = models map (m => cost.totalCost(rows, id => m.eval(rows(id))))
+    val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
+    val losses = models map (m => cost.totalCost(rows, id => m.eval(rows(id).features)))
     // Losses should decrease monotonically on the training data
     for (i <- (1 until losses.length)) {
       assert(losses(i) < losses(i - 1))

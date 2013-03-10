@@ -37,17 +37,16 @@ object TrainModel {
   def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String) {
     val rows = new java.io.File(input).readRows
     val columns = rows.toSeq.toSortedColumns
-    val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss, columns).train match {
+    val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss, columns).train 
+/*    match {
       case m: AdditiveModel => m.models match {
         case treeModels: Seq[DecisionTreeModel] => treeModels.toList
       }
-    }
+    }*/
     val treesJson = trees.toJson
-    val p = new java.io.PrintWriter(new java.io.File(output))
-    try {
-      p.println(treesJson)
+    using (new java.io.PrintWriter(new java.io.File(output))) {
+      p => p.println(treesJson)
     }
-    finally {p.close}
   }
 }
 
@@ -58,6 +57,8 @@ class TrainModelConfig extends CommandLineParameters {
   var learningRate = 0.2
   var leafCount = 10
   var minLeafSize = 20
+  var rowSampleRate = 1.0
+  var featureSampleRate = 1.0
 
   def usage = {
     required("train", "In TSV file to use for training") ::
@@ -65,6 +66,9 @@ class TrainModelConfig extends CommandLineParameters {
       required("output", "Output file containing trained trees") ::
       optional("learningRate", "Learning rate for gradient descent") ::
       optional("leafCount", "Number of leaf nodes per tree") ::
-      optional("minLeafSize", "Minimum number of instances per leaf node") :: Nil
+      optional("minLeafSize", "Minimum number of instances per leaf node") ::
+      optional("rowSampleRate", "Number of rows to sample at each iteration") ::
+      optional("featureSampleRate", "Number of features to sample at each iteration") ::
+      Nil
   }
 }

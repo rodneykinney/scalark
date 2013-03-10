@@ -16,10 +16,10 @@ limitations under the License.
 package scalark.decisionTreeTraining
 
 trait Model {
-  def eval(data: FeatureRow): Double
+  def eval(features: Seq[Int]): Double
 }
 
 /** A model that is the sum of other models */
-class AdditiveModel(val models:Seq[Model]) extends Model {
-  def eval(row:FeatureRow) = models.map(_.eval(row)).sum
+case class AdditiveModel(val models:Seq[Model]) extends Model {
+  def eval(features:Seq[Int]) = models.map(_.eval(features)).sum
 }

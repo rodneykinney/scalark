@@ -30,15 +30,15 @@ class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
 
   def Root = nodesByIndex(0)
 
-  def eval(row: FeatureRow) = {
-    eval(row, Root)
+  def eval(features: Seq[Int]) = {
+    eval(features, Root)
   }
 
-  private def eval(row: FeatureRow, node: DecisionTreeNode): Double = node match {
+  private def eval(features: Seq[Int], node: DecisionTreeNode): Double = node match {
     case leaf: DecisionTreeLeaf => leaf.value
     case split: DecisionTreeSplit =>
-      if (row.features(split.split.columnId) <= split.split.threshold) eval(row, nodesByIndex(split.leftId))
-      else eval(row, nodesByIndex(split.rightId))
+      if (features(split.split.columnId) <= split.split.threshold) eval(features, nodesByIndex(split.leftId))
+      else eval(features, nodesByIndex(split.rightId))
   }
 
   def merge(model: DecisionTreeModel) = {

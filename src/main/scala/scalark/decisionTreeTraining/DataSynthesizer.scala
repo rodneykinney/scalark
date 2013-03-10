@@ -28,33 +28,32 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val model = gaussianMixtureModel(nModes)
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
-      val value = model(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
+      val value = model.eval(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
       new LabeledFeatureRow[Double](id, features, 1.0, value)
     }
     rows
   }
 
-  def binaryClassification(nRows: Int, nModesPerClass: Int) = {
-    val positiveModel = gaussianMixtureModel(nModesPerClass)
-    val negativeModel = gaussianMixtureModel(nModesPerClass)
+  def binaryClassificationDataAndOptimalModel(nRows: Int, nModesPerClass: Int) = {
+    val model = new BayesOptimalBinaryModel(gaussianMixtureModel(nModesPerClass), gaussianMixtureModel(nModesPerClass))
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
-      val p1 = positiveModel(features)
-      val p2 = negativeModel(features)
-      val value = (p1 + p2) * rand.nextDouble()
-      new LabeledFeatureRow[Boolean](id, features, 1.0, value < p1)
+      val trueProbability = model.eval(features)
+      new LabeledFeatureRow[Boolean](id, features, 1.0, rand.nextDouble < trueProbability)
     }
-    rows
+    (rows,model)
   }
 
+  def binaryClassification(nRows: Int, nModesPerClass: Int) = binaryClassificationDataAndOptimalModel(nRows, nModesPerClass)._1
+  
   def gaussianMixtureModel(nModes: Int) = {
     val modes = for (i <- (0 until nModes)) yield {
       val featureSubset = randomFeatureIndices
       val mean = (0 until featureSubset.size) map (i => rand.nextDouble)
       val variance = randomVariance(featureSubset.size)
-      gaussianModel(mean, variance, featureSubset)
+      new GaussianModel(mean, variance, featureSubset, range)
     }
-    features:Seq[Int] => modes.map(_(features)).sum
+    new AdditiveModel(modes)
   }
 
   def randomFeatureIndices = {
@@ -86,18 +85,5 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     N
   }
 
-  def gaussianModel(mean: IndexedSeq[Double], variance: IndexedSeq[IndexedSeq[Double]], featureIndices: IndexedSeq[Int]) = {
-    var f = (features: Seq[Int]) => {
-      var sum = 0.0
-      for (
-        i <- (0 until mean.length);
-        j <- (0 until mean.length)
-      ) sum += (features(featureIndices(i)) - mean(i) * range) *
-        variance(i)(j) * scale *
-        (features(j) - mean(j) * range)
-      math.exp(-sum * sum)
-    }
-    f
-  }
 
 }

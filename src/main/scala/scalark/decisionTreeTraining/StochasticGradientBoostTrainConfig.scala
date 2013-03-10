@@ -15,6 +15,13 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-class StochasticGradientBoostTrainConfig(val iterationCount: Int, val learningRate: Double, leafCount:Int, minLeafSize:Int) {
+class StochasticGradientBoostTrainConfig(
+  val iterationCount: Int,
+  val learningRate: Double,
+  val rowSampleRate: Double = 1.0,
+  val featureSampleRate: Double = 1.0,
+  val randomSeed:Int = 117,
+  leafCount: Int,
+  minLeafSize: Int) {
   val treeConfig = new DecisionTreeTrainConfig(leafCount = leafCount, minLeafSize = minLeafSize)
 }

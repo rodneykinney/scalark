@@ -16,7 +16,9 @@ limitations under the License.
 package scalark.apps
 
 import scalark.decisionTreeTraining._
+import scalark.serialization.ModelSerialization._
 import Extensions._
+import spray.json._
 import java.io._
 
 object GenerateTSV {
@@ -25,12 +27,23 @@ object GenerateTSV {
     if (!config.parse(args))
       System.exit(0)
 
-    this(nDim = config.nDim, rowCount = config.rowCount, outputFile = config.output, nModesPerClass = config.nModesPerClass, format = config.format)
+    this(nDim = config.nDim, 
+        rowCount = config.rowCount, 
+        outputFile = config.output, 
+        nModesPerClass = config.nModesPerClass, 
+        format = config.format, 
+        modelOutput = Option(config.optimalModelFile))
   }
 
-  def apply(nDim: Int, rowCount: Int, outputFile: String, nModesPerClass: Int = 6, minFeatureValue: Int = 0, maxFeatureValue: Int = 1000, format: String = "TSV") = {
+  def apply(nDim: Int, rowCount: Int, 
+      outputFile: String, 
+      nModesPerClass: Int = 6, 
+      minFeatureValue: Int = 0, 
+      maxFeatureValue: Int = 1000, 
+      format: String = "TSV", 
+      modelOutput:Option[String]) = {
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue)
-    val rows = synthesizer.binaryClassification(rowCount, nModesPerClass)
+    val (rows,model) = synthesizer.binaryClassificationDataAndOptimalModel(rowCount, nModesPerClass)
     format match {
       case "TSV" => {
         val format = (1 to rows.head.features.size).map(i => "%d").mkString("\t")
@@ -46,6 +59,11 @@ object GenerateTSV {
         writer.close()
       }
     }
+    if (modelOutput.isDefined) {
+      using (new PrintWriter(new FileWriter(modelOutput.get))) {
+        p => p.println(model.toJson)
+      }
+    }
   }
 }
 
@@ -55,12 +73,15 @@ class GenerateTSVConfig extends CommandLineParameters {
   var rowCount: Int = 100
   var nModesPerClass: Int = 6
   var format: String = "TSV"
+  var optimalModelFile: String = _
 
   def usage = {
     required("output", "Output TSV File") ::
       optional("nDim", "Number of dimensions") ::
       optional("rowCount", "Number of instances") ::
       optional("nModesPerClass", "Number of peaks in join distribution") ::
-      optional("format", "TSV | ARFF") :: Nil
+      optional("format", "TSV | ARFF") ::
+      optional("optimalModelFile", "Output file containing model used to generated data") ::
+      Nil
   }
 }

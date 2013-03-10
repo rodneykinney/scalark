@@ -23,21 +23,21 @@ import scalark.serialization.ModelSerialization._
 
 object EvalModel {
   def main(args: Array[String]) {
-	  val config = new EvalModelConfig()
-	  if (!config.parse(args))
-	    System.exit(0)
-	  this(config.dataFile, config.modelFile)
+    val config = new EvalModelConfig()
+    if (!config.parse(args))
+      System.exit(0)
+    this(config.dataFile, config.modelFile)
   }
-  
-  def apply(dataFile:String, modelFile:String) = {
-	  val rows = new java.io.File(dataFile).readRows.toSeq
-	  val trees = io.Source.fromFile(modelFile).getLines.mkString(" ").asJson.convertTo[Vector[DecisionTreeModel]]
-	  val models = (1 to trees.length).map(n => new AdditiveModel(trees.take(n)))
-	  val rowCount = rows.length
-	  val cost = new LogLogisticLoss
-	  for ((iter,m) <- (1 to models.length).zip(models)) {
-	    println("Iteration #%d accuracy = %f".format(iter,rows.count(r => m.eval(r) < 0 ^ r.label).toDouble/rowCount))
-	  }
+
+  def apply(dataFile: String, modelFile: String) = {
+    val rows = new java.io.File(dataFile).readRows.toSeq
+    val trees = io.Source.fromFile(modelFile).getLines.mkString(" ").asJson.convertTo[Vector[Model]]
+    val models = (1 to trees.length).map(n => new AdditiveModel(trees.take(n)))
+    val rowCount = rows.length
+    val cost = new LogLogisticLoss
+    for ((iter, m) <- (1 to models.length).zip(models)) {
+      println("Iteration #%d accuracy = %f".format(iter, rows.count(r => m.eval(r.features) < 0 ^ r.label).toDouble / rowCount))
+    }
   }
 }
 
@@ -47,6 +47,7 @@ class EvalModelConfig extends CommandLineParameters {
 
   def usage = {
     required("dataFile", "Input TSV file containing test data") ::
-      required("modelFile", "JSON-format file containing model") :: Nil
+      required("modelFile", "JSON-format file containing model") ::
+      Nil
   }
 }

@@ -54,6 +54,7 @@ object ModelSerialization extends DefaultJsonProtocol {
       case tree: DecisionTreeModel => tree.toJson
       case gaussian: GaussianModel => gaussian.toJson
       case add:AdditiveModel => add.toJson
+      case bayes:BayesOptimalBinaryModel => bayes.toJson
       case _ => serializationError("Unknown model type:  " + m)
     }
     def read(value: JsValue) = value match {

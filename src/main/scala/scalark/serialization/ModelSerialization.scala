@@ -26,7 +26,7 @@ object ModelSerialization extends DefaultJsonProtocol {
   implicit val leafFormat = jsonFormat2(DecisionTreeLeaf)
   implicit val splitFormat = jsonFormat2(Split)
   implicit val splitNodeFormat = jsonFormat4(DecisionTreeSplit)
-  implicit val gaussianFormat = jsonFormat4(GaussianModel)
+  implicit val gaussianFormat = jsonFormat(GaussianModel, "means", "variance", "featureIndices", "range")
 
   implicit object decisionTreeNodeFormat extends RootJsonFormat[DecisionTreeNode] {
     def write(n: DecisionTreeNode) = n match {
@@ -51,16 +51,16 @@ object ModelSerialization extends DefaultJsonProtocol {
 
   implicit object genericModelFormat extends RootJsonFormat[Model] {
     def write(m: Model) = m match {
-      case tree: DecisionTreeModel => Map("modelType" -> "DecisionTreeModel", "model" -> tree.nodes.toList.toJson.toString).toJson
-      case gaussian: GaussianModel => Map("modelType" -> "GaussianModel", "model" -> gaussian.toJson.toString).toJson
+      case tree: DecisionTreeModel => tree.toJson
+      case gaussian: GaussianModel => gaussian.toJson
+      case add:AdditiveModel => add.toJson
       case _ => serializationError("Unknown model type:  " + m)
     }
     def read(value: JsValue) = value match {
-      case m: Map[String, String] => m("modelType") match {
-        case "DecisionTreeModel" => m("model").asJson.convertTo[DecisionTreeModel]
-        case "GaussianModel" => m("model").asJson.convertTo[GaussianModel]
-        case _ => deserializationError("Unknown model type: " + m("model"))
-      }
+      case v if v.asJsObject.getFields("positiveModel").length > 0 => v.convertTo[BayesOptimalBinaryModel]
+      case v if v.asJsObject.getFields("models").length > 0 => v.convertTo[AdditiveModel]
+      case v if v.asJsObject.getFields("means").length > 0 => v.convertTo[GaussianModel]
+      case v if v.asJsObject.getFields("nodes").length > 0 => v.convertTo[DecisionTreeModel]
       case _ => deserializationError("Unknown Model format: " + value)
     }
   }

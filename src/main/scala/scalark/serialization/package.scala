@@ -13,16 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package scalark.serialization
+package scalark
 
 import scalark.decisionTreeTraining._
 import spray.json._
 import DefaultJsonProtocol._
 
 /**
- * Serialize decision tree models using spray-json
+ * Serialize different kinds of models using spray-json
  */
-object ModelSerialization extends DefaultJsonProtocol {
+package object serialization extends DefaultJsonProtocol {
   implicit val leafFormat = jsonFormat2(DecisionTreeLeaf)
   implicit val splitFormat = jsonFormat2(Split)
   implicit val splitNodeFormat = jsonFormat4(DecisionTreeSplit)
@@ -33,9 +33,14 @@ object ModelSerialization extends DefaultJsonProtocol {
       case l: DecisionTreeLeaf => l.toJson
       case s: DecisionTreeSplit => s.toJson
     }
-    def read(value: JsValue) = value.asJsObject.getFields("regionId", "value", "leftId", "rightId", "split") match {
-      case Seq(JsNumber(regionId), JsNumber(leftId), JsNumber(rightId), s: JsObject) => new DecisionTreeSplit(regionId.toInt, leftId.toInt, rightId.toInt, s.convertTo[Split])
-      case Seq(JsNumber(regionId), JsNumber(value)) => new DecisionTreeLeaf(regionId.toInt, value.toDouble)
+//    def read(value: JsValue) = value.asJsObject.getFields("regionId", "value", "leftId", "rightId", "split") match {
+//      case Seq(JsNumber(regionId), JsNumber(leftId), JsNumber(rightId), s: JsObject) => new DecisionTreeSplit(regionId.toInt, leftId.toInt, rightId.toInt, s.convertTo[Split])
+//      case Seq(JsNumber(regionId), JsNumber(value)) => new DecisionTreeLeaf(regionId.toInt, value.toDouble)
+//      case _ => deserializationError("DecisionTreeNode expected")
+//    }
+    def read(value: JsValue) = value match {
+      case v if v.asJsObject.getFields("split").length > 0 => v.convertTo[DecisionTreeSplit]
+      case v if v.asJsObject.getFields("value").length > 0 => v.convertTo[DecisionTreeLeaf]
       case _ => deserializationError("DecisionTreeNode expected")
     }
   }

@@ -15,8 +15,7 @@ limitations under the License.
 */
 package scalark.apps
 import scalark.decisionTreeTraining._
-import scalark.serialization.ModelSerialization._
-import Extensions._
+import scalark.serialization._
 
 import spray.json._
 
@@ -38,11 +37,6 @@ object TrainModel {
     val rows = new java.io.File(input).readRows
     val columns = rows.toSeq.toSortedColumns
     val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss, columns).train 
-/*    match {
-      case m: AdditiveModel => m.models match {
-        case treeModels: Seq[DecisionTreeModel] => treeModels.toList
-      }
-    }*/
     val treesJson = trees.toJson
     using (new java.io.PrintWriter(new java.io.File(output))) {
       p => p.println(treesJson)

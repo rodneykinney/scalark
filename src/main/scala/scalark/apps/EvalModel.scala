@@ -16,10 +16,9 @@ limitations under the License.
 package scalark.apps
 
 import scalark.decisionTreeTraining._
-import Extensions._
 import spray.json._
 import DefaultJsonProtocol._
-import scalark.serialization.ModelSerialization._
+import scalark.serialization._
 
 object EvalModel {
   def main(args: Array[String]) {
@@ -31,8 +30,7 @@ object EvalModel {
 
   def apply(dataFile: String, modelFile: String) = {
     val rows = new java.io.File(dataFile).readRows.toSeq
-    val trees = io.Source.fromFile(modelFile).getLines.mkString(" ").asJson.convertTo[Vector[Model]]
-    val models = (1 to trees.length).map(n => new AdditiveModel(trees.take(n)))
+    val models = io.Source.fromFile(modelFile).getLines.map(_.asJson.convertTo[Model]).toList
     val rowCount = rows.length
     val cost = new LogLogisticLoss
     for ((iter, m) <- (1 to models.length).zip(models)) {

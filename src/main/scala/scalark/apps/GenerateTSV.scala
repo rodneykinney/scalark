@@ -16,8 +16,7 @@ limitations under the License.
 package scalark.apps
 
 import scalark.decisionTreeTraining._
-import scalark.serialization.ModelSerialization._
-import Extensions._
+import scalark.serialization._
 import spray.json._
 import java.io._
 
@@ -27,23 +26,22 @@ object GenerateTSV {
     if (!config.parse(args))
       System.exit(0)
 
-    this(nDim = config.nDim, 
-        rowCount = config.rowCount, 
-        outputFile = config.output, 
-        nModesPerClass = config.nModesPerClass, 
-        format = config.format, 
-        modelOutput = Option(config.optimalModelFile))
+    this(nDim = config.nDim,
+      rowCount = config.rowCount,
+      outputFile = config.output,
+      modelFile = config.modelFile,
+      format = config.format)
   }
 
-  def apply(nDim: Int, rowCount: Int, 
-      outputFile: String, 
-      nModesPerClass: Int = 6, 
-      minFeatureValue: Int = 0, 
-      maxFeatureValue: Int = 1000, 
-      format: String = "TSV", 
-      modelOutput:Option[String]) = {
+  def apply(nDim: Int, rowCount: Int,
+    outputFile: String,
+    modelFile:String,
+    minFeatureValue: Int = 0,
+    maxFeatureValue: Int = 1000,
+    format: String = "TSV") = {
+    val model = io.Source.fromFile(modelFile).getLines.mkString(" ").asJson.convertTo[Model]
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue)
-    val (rows,model) = synthesizer.binaryClassificationDataAndOptimalModel(rowCount, nModesPerClass)
+    val rows = synthesizer.binaryClassificationData(rowCount, model)
     format match {
       case "TSV" => {
         val format = (1 to rows.head.features.size).map(i => "%d").mkString("\t")
@@ -59,11 +57,6 @@ object GenerateTSV {
         writer.close()
       }
     }
-    if (modelOutput.isDefined) {
-      using (new PrintWriter(new FileWriter(modelOutput.get))) {
-        p => p.println(model.toJson)
-      }
-    }
   }
 }
 
@@ -71,17 +64,15 @@ class GenerateTSVConfig extends CommandLineParameters {
   var output: String = _
   var nDim: Int = 2
   var rowCount: Int = 100
-  var nModesPerClass: Int = 6
   var format: String = "TSV"
-  var optimalModelFile: String = _
+  var modelFile: String = _
 
   def usage = {
-    required("output", "Output TSV File") ::
+    required("modelFile", "File containing serialized model used to generate data") ::
+      required("output", "Output TSV File") ::
       optional("nDim", "Number of dimensions") ::
       optional("rowCount", "Number of instances") ::
-      optional("nModesPerClass", "Number of peaks in join distribution") ::
       optional("format", "TSV | ARFF") ::
-      optional("optimalModelFile", "Output file containing model used to generated data") ::
       Nil
   }
 }

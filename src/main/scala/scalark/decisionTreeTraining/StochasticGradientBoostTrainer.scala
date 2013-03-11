@@ -16,7 +16,6 @@ limitations under the License.
 package scalark.decisionTreeTraining
 
 import scala.collection._
-import Extensions._
 
 class StochasticGradientBoostTrainer(
   config: StochasticGradientBoostTrainConfig,

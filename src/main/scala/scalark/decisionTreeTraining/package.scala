@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package scalark.decisionTreeTraining
+package scalark
 
 import scala.collection._
 import java.io._
 
-object Extensions {
+package object decisionTreeTraining {
 
   /**
    * Add method toSortedColumns to sequences of rows, to produce column-wise data from row-wise data

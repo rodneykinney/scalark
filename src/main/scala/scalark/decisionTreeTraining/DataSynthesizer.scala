@@ -36,16 +36,21 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
 
   def binaryClassificationDataAndOptimalModel(nRows: Int, nModesPerClass: Int) = {
     val model = new BayesOptimalBinaryModel(gaussianMixtureModel(nModesPerClass), gaussianMixtureModel(nModesPerClass))
+    val data = binaryClassificationData(nRows, model)
+    (data, model)
+  }
+
+  def binaryClassificationData(nRows: Int, model: Model) = {
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val trueProbability = model.eval(features)
       new LabeledFeatureRow[Boolean](id, features, 1.0, rand.nextDouble < trueProbability)
     }
-    (rows,model)
+    rows
   }
 
   def binaryClassification(nRows: Int, nModesPerClass: Int) = binaryClassificationDataAndOptimalModel(nRows, nModesPerClass)._1
-  
+
   def gaussianMixtureModel(nModes: Int) = {
     val modes = for (i <- (0 until nModes)) yield {
       val featureSubset = randomFeatureIndices
@@ -71,7 +76,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
   def randomVariance(dims: Int) = {
     var N = Vector.empty[IndexedSeq[Double]]
     for (i <- (0 until dims)) {
-      var col:IndexedSeq[Double] = (0 until dims) map (i => rand.nextDouble)
+      var col: IndexedSeq[Double] = (0 until dims) map (i => rand.nextDouble)
       for (j <- (0 until i)) {
         val projection = (N(j).zip(col)).map(t => t._1 * t._2).sum
         col = N(j) zip col map (t => t._2 - t._1 * projection)
@@ -84,6 +89,5 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     N = N zip diags map (t => t._1.map(x => x * t._2))
     N
   }
-
 
 }

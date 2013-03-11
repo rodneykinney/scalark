@@ -17,7 +17,7 @@ package scalark.apps
 import spray.json._
 import DefaultJsonProtocol._
 import scalark.decisionTreeTraining._
-import scalark.serialization.ModelSerialization._
+import scalark.serialization._
 
 object SprayJsonTest {
   def main(args: Array[String]) = {

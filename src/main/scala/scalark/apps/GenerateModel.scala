@@ -28,12 +28,13 @@ object GenerateModel {
     this(nDim = config.nDim,
       nModesPerClass = config.nModesPerClass,
       outputFile = config.output,
-      seed = config.seed)
+      seed = config.seed,
+      spikiness = config.spikiness)
   }
 
-  def apply(nDim: Int, nModesPerClass: Int, outputFile: String, minFeatureValue: Int = 0, maxFeatureValue: Int = 1000, seed: Int = 117) = {
+  def apply(nDim: Int, nModesPerClass: Int, outputFile: String, minFeatureValue: Int = 0, maxFeatureValue: Int = 1000, seed: Int = 117, spikiness: Double = 1.0) = {
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed)
-    val model = new BayesOptimalBinaryModel(synthesizer.gaussianMixtureModel(nModesPerClass), synthesizer.gaussianMixtureModel(nModesPerClass))
+    val model = new BayesOptimalBinaryModel(synthesizer.gaussianMixtureModel(nModesPerClass, spikiness), synthesizer.gaussianMixtureModel(nModesPerClass, spikiness))
     using(new java.io.PrintWriter(new java.io.File(outputFile))) {
       w => w.println(model.toJson)
     }
@@ -45,13 +46,14 @@ class GenerateModelConfig extends CommandLineParameters {
   var nDim: Int = 2
   var nModesPerClass: Int = 6
   val seed: Int = 117
+  val spikiness: Double = 2.5
 
   def usage = {
     required("output", "Output TSV File") ::
       optional("nDim", "Number of dimensions") ::
-      optional("rowCount", "Number of instances") ::
       optional("nModesPerClass", "Number of peaks in single-class distribution") ::
       optional("seed", "Random seed") ::
+      optional("spikiness", "Inverse width of peaks in single-class distribution") ::
       Nil
   }
 }

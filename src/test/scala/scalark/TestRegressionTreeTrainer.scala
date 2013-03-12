@@ -16,7 +16,6 @@ limitations under the License.
 package scalark
 
 import scalark.decisionTreeTraining._
-import Extensions._
 import org.scalatest._
 import scala.util._
 

@@ -51,11 +51,11 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
 
   def binaryClassification(nRows: Int, nModesPerClass: Int) = binaryClassificationDataAndOptimalModel(nRows, nModesPerClass)._1
 
-  def gaussianMixtureModel(nModes: Int) = {
+  def gaussianMixtureModel(nModes: Int, spikiness:Double = 1.0) = {
     val modes = for (i <- (0 until nModes)) yield {
       val featureSubset = randomFeatureIndices
       val mean = (0 until featureSubset.size) map (i => rand.nextDouble)
-      val variance = randomVariance(featureSubset.size)
+      val variance = randomVariance(featureSubset.size, spikiness)
       new GaussianModel(mean, variance, featureSubset, range)
     }
     new AdditiveModel(modes)
@@ -73,7 +73,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     Vector.empty[Int] ++ indices.take(nFeatures)
   }
 
-  def randomVariance(dims: Int) = {
+  def randomVariance(dims: Int, spikiness:Double = 1.0) = {
     var N = Vector.empty[IndexedSeq[Double]]
     for (i <- (0 until dims)) {
       var col: IndexedSeq[Double] = (0 until dims) map (i => rand.nextDouble)
@@ -85,7 +85,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
       col = col map (_ / norm)
       N = N :+ col
     }
-    val diags = (0 until dims) map (i => rand.nextDouble) map (x => x * x)
+    val diags = (0 until dims) map (i => rand.nextDouble * spikiness) map (x => x * x)
     N = N zip diags map (t => t._1.map(x => x * t._2))
     N
   }

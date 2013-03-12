@@ -34,7 +34,7 @@ object EvalModel {
     val rowCount = rows.length
     val cost = new LogLogisticLoss
     for ((iter, m) <- (1 to models.length).zip(models)) {
-      println("Iteration #%d accuracy = %f".format(iter, rows.count(r => m.eval(r.features) < 0 ^ r.label).toDouble / rowCount))
+      println("Iteration #%d accuracy = %f".format(iter, rows.count(r => m.eval(r.features) < .5 ^ r.label).toDouble / rowCount))
     }
   }
 }

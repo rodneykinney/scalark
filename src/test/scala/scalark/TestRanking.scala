@@ -21,14 +21,16 @@ import scala.util._
 
 class TestRanking extends FunSuite {
   test("TotalCost") {
-val c = new RankingCost()
+    val c = new RankingCost()
 
-val rows = List(new ConcreteQueryDocPair[Int](rowId=0,label=0,weight=0,queryId=0),
-new ConcreteQueryDocPair[Int](rowId=1,label=0,weight=0,queryId=0),
-new ConcreteQueryDocPair[Int](rowId=2,label=1,weight=0,queryId=0),
-new ConcreteQueryDocPair[Int](rowId=3,label=0,weight=0,queryId=1),
-new ConcreteQueryDocPair[Int](rowId=4,label=1,weight=0,queryId=1))
+    val rows = List(new ConcreteQueryDocPair[Int](rowId = 0, label = 0, weight = 0, queryId = 0),
+      new ConcreteQueryDocPair[Int](rowId = 1, label = 0, weight = 0, queryId = 0),
+      new ConcreteQueryDocPair[Int](rowId = 2, label = 1, weight = 0, queryId = 0),
+      new ConcreteQueryDocPair[Int](rowId = 3, label = 0, weight = 0, queryId = 1),
+      new ConcreteQueryDocPair[Int](rowId = 4, label = 1, weight = 0, queryId = 1))
 
     assert(math.abs(c.totalCost(rows, id => rows(id).label) - 3 * math.log(1 + math.exp(-1))) < 1.0e-9)
+    assert(math.abs(c.totalCost(rows, id => 0) - 3 * math.log(2)) < 1.0e-9)
+    assert(c.gradient(rows, id => 0) === Seq(-.5, -.5, 1, -.5, .5))
   }
 }

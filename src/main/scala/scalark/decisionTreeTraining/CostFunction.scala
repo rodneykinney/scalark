@@ -15,21 +15,22 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-trait CostFunction[LabelType] {
+trait CostFunction[L, T <: LabelInstance[L]] {
   /**
    * Constant value that minimizes the cost for this set of instances (e.g. mean value)
    */
-  def optimalConstant(labels: Seq[LabelInstance[LabelType]]): Double
+  def optimalConstant(data: Seq[T]): Double
   /**
    * Gradient of the cost function
    */
-  def gradient(labels: Seq[LabelInstance[LabelType]], modelEval: Function[Int, Double]): Seq[Double]
+  def gradient(data: Seq[T], rowIdToModelScore: Int => Double): Seq[Double]
   /**
    * Total cost for this set of instances
    */
-  def totalCost(ids: Seq[LabelInstance[LabelType]], modelEval: Function[Int, Double]): Double
+  def totalCost(data: Seq[T], rowIdToModelScore: Int => Double): Double
   /**
    * Finds the constant value that should be added to the model score to minimize the cost for each set of instances
    */
-  def optimalDelta(regions:Seq[Seq[LabelInstance[LabelType]]], modelEval:Function[Int,Double]):Seq[Double]
+  def optimalDelta(regions: Seq[Seq[T]], rowIdToModelScore: Int => Double): Seq[Double]
+  def optimalDelta(data: Seq[T], rowIdToRegionId: Int => Int, rowIdToModelScore: Int => Double): Int => Double
 }

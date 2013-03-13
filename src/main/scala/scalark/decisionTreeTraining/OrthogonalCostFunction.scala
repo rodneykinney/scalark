@@ -14,35 +14,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package scalark.decisionTreeTraining
-
+import scala.collection._
 /**
  * An Orthogonal cost function is one in which the derivative with respect to f_i depends only on f_i
  */
-abstract class OrthogonalCostFunction[LabelType] extends CostFunction[LabelType] {
+abstract class OrthogonalCostFunction[L, T <: LabelInstance[L]] extends CostFunction[L,T] {
 
   /** Value of the cost function for a single point */
-  def cost(x: LabelInstance[LabelType], f: Double): Double
+  def cost(x: T, f: Double): Double
 
   /** Single-variable derivative */
-  def derivative(x: LabelInstance[LabelType], f: Double): Double
+  def derivative(x: T, f: Double): Double
 
   /** Single-variable second derivative */
-  def secondDerivative(x: LabelInstance[LabelType], f: Double): Double
+  def secondDerivative(x: T, f: Double): Double
 
-  def gradient(labels: Seq[LabelInstance[LabelType]], modelEval: Function[Int, Double]) = {
-    for (l <- labels) yield {
-      val modelScore = modelEval(l.rowId)
+  def gradient(data: Seq[T], rowIdToModelScore: Int => Double) = {
+    for (l <- data) yield {
+      val modelScore = rowIdToModelScore(l.rowId)
       derivative(l, modelScore)
     }
   }
 
   /** Single Newton-Raphson step to find minimum */
-  def optimalDelta(regions: Seq[Seq[LabelInstance[LabelType]]], modelEval: Function[Int, Double]) = {
+  def optimalDelta(regions: Seq[Seq[T]], modelEval: Function[Int, Double]) = {
     for (nodes <- regions) yield {
       val scores = nodes.map(n => modelEval(n.rowId))
       -nodes.zip(scores).map(t => derivative(t._1, t._2)).sum / nodes.zip(scores).map(t => secondDerivative(t._1, t._2)).sum
     }
   }
+  def optimalDelta(data: Seq[T], rowIdToRegionId: Int => Int, rowIdToModelScore: Int => Double) = {
+    val regions = data.groupBy(row => rowIdToRegionId(row.rowId))
+    (for ((regionId, regionData) <- regions) yield {
+      val scores = regionData.map(n => rowIdToModelScore(n.rowId))
+      val delta = -regionData.zip(scores).map(t => derivative(t._1, t._2)).sum / regionData.zip(scores).map(t => secondDerivative(t._1, t._2)).sum
+      (regionId,delta)
+    }).toMap
+  }
 
-  def totalCost(labels: Seq[LabelInstance[LabelType]], modelEval: Function[Int, Double]) = labels.map(l => cost(l, modelEval(l.rowId))).sum
+  def totalCost(labels: Seq[T], modelEval: Function[Int, Double]) = labels.map(l => cost(l, modelEval(l.rowId))).sum
 }

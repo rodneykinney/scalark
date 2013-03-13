@@ -18,7 +18,7 @@ package scalark.decisionTreeTraining
 /* Classes for evaluating a decision tree model at run-time */
 
 abstract class DecisionTreeNode {
-  val regionId:Int
+  val regionId: Int
 }
 
 case class DecisionTreeLeaf(regionId: Int, value: Double) extends DecisionTreeNode
@@ -30,12 +30,12 @@ class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
 
   def Root = nodesByIndex(0)
 
-  def eval(features: Seq[Int]) = {
-    eval(features, Root)
-  }
+  def eval(features: Seq[Int]) = eval(features, Root).value
 
-  private def eval(features: Seq[Int], node: DecisionTreeNode): Double = node match {
-    case leaf: DecisionTreeLeaf => leaf.value
+  def regionId(features: Seq[Int]) = eval(features, Root).regionId
+
+  private def eval(features: Seq[Int], node: DecisionTreeNode): DecisionTreeLeaf = node match {
+    case leaf: DecisionTreeLeaf => leaf
     case split: DecisionTreeSplit =>
       if (features(split.split.columnId) <= split.split.threshold) eval(features, nodesByIndex(split.leftId))
       else eval(features, nodesByIndex(split.rightId))
@@ -49,5 +49,5 @@ class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
   def leafCount = nodes.count(_.isInstanceOf[DecisionTreeLeaf])
 }
 
-case class Split(columnId:Int, threshold:Int)
+case class Split(columnId: Int, threshold: Int)
 

@@ -19,7 +19,7 @@ import scala.collection._
 
 class StochasticGradientBoostTrainer(
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[Boolean],
+  cost: CostFunction[Boolean, LabelInstance[Boolean]],
   columns: immutable.Seq[FeatureColumn[Boolean]]) {
 
   private var trees = Vector.empty[Model]
@@ -63,13 +63,22 @@ class StochasticGradientBoostTrainer(
 
       // Optimize constant values at leaves of the tree
       val (leaves, splits) = tree.nodes.partition(_.isInstanceOf[DecisionTreeLeaf])
-      val instancesInLeafRegions = leaves.map(l => residualData.head.all(regressionTrainer.partition(l.regionId)).map(_.asInstanceOf[FeatureInstanceDelegate[Double, Boolean]]._2))
-      val deltas = cost.optimalDelta(instancesInLeafRegions, modelScores)
-      val replacedLeaves = leaves.zip(deltas).map(t => {
-        val (l,v) = t
-        residualData.head.all(regressionTrainer.partition(l.regionId)).foreach(i => modelScores(i.rowId) += v * config.learningRate)
-        new DecisionTreeLeaf(regionId = l.regionId, value = v * config.learningRate)
-      })
+//      val instancesInLeafRegions = leaves.map(l => residualData.head.all(regressionTrainer.partition(l.regionId)).map(_.asInstanceOf[FeatureInstanceDelegate[Double, Boolean]]._2))
+//      val deltas = cost.optimalDelta(instancesInLeafRegions, modelScores)
+//      val replacedLeaves = leaves.zip(deltas).map(t => {
+//        val (l,v) = t
+//        residualData.head.all(regressionTrainer.partition(l.regionId)).foreach(i => modelScores(i.rowId) += v * config.learningRate)
+//        new DecisionTreeLeaf(regionId = l.regionId, value = v * config.learningRate)
+//      })
+      val rowIdToRegionId = leaves.flatMap(l => residualData.head.all(regressionTrainer.partition(l.regionId)).map(row => (row.rowId,l.regionId))).toMap
+      val regionIdToDelta = cost.optimalDelta(columns.head.all(rootRegion).filter(sampledRows contains _.rowId), rowIdToRegionId, modelScores)
+      for (row <- columns.head.all(rootRegion)) {
+        modelScores(row.rowId) += regionIdToDelta(rowIdToRegionId(row.rowId)) * config.learningRate
+      }
+      val replacedLeaves = for (l <- leaves) yield {
+        val delta = regionIdToDelta(l.regionId)
+        new DecisionTreeLeaf(regionId = l.regionId, value = delta * config.learningRate)
+      } 
       val deltaModel = new DecisionTreeModel(splits ++ replacedLeaves)
 
       // Add tree to ensemble

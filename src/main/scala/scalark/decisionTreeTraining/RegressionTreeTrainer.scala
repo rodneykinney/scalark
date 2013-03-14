@@ -24,13 +24,14 @@ import scala.collection.immutable._
 class RegressionTreeTrainer(
   val config: DecisionTreeTrainConfig,
   val columns: Seq[FeatureColumn[Double]],
-  val rowCount: Int) {
+  val rowCount: Int,
+  val rowFilter: Int => Boolean = i => true) {
   val partition = new TreePartition(rowCount)
   private val splitter = new RegressionSplitFinder(config)
 
   private var _model: DecisionTreeModel = {
-    val countSum = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + fi.weight, t._2 + fi.weight * fi.label) }
-    val mean = countSum._2 / countSum._1
+    val (total,sum) = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + 1, t._2 + fi.label) }
+    val mean = sum / total
     new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
   }
 
@@ -45,7 +46,7 @@ class RegressionTreeTrainer(
 
   def nextIteration(): SplitCandidate = {
     if (candidates == null) {
-      candidates = new PriorityQueue[SplitCandidate]()(Ordering[Double].on[SplitCandidate](_.gain)) ++ columns.map(splitter.findSplitCandidate(_, partition.root)).filter(_ != null)
+      candidates = new PriorityQueue[SplitCandidate]()(Ordering[Double].on[SplitCandidate](_.gain)) ++ columns.map(splitter.findSplitCandidate(_, partition.root, rowFilter)).filter(_ != null)
     }
     if (candidates.size > 0) {
       val bestCandidate = candidates.dequeue
@@ -58,8 +59,8 @@ class RegressionTreeTrainer(
       val leftIds = column.range(splitNode, 0, splitNode.size).filter(_.featureValue <= bestCandidate.threshold).map(_.rowId).toSet
       val (left, right) = partition.split(splitNode, leftIds.size)
       columns.foreach(_.repartition(splitNode, left, right, leftIds))
-      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, left)).filter(_ != null)
-      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, right)).filter(_ != null)
+      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, left, rowFilter)).filter(_ != null)
+      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, right, rowFilter)).filter(_ != null)
 
       _model = _model.merge(new DecisionTreeModel(
         Vector(new DecisionTreeSplit(splitNode.regionId, left.regionId, right.regionId, bestCandidate),

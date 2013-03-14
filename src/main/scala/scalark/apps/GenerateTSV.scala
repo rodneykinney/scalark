@@ -45,7 +45,7 @@ object GenerateTSV {
     format match {
       case "TSV" => {
         val format = (1 to rows.head.features.size).map(i => "%d").mkString("\t")
-        rows.map(row => row.rowId + "\t" + row.weight + "\t" + row.label + "\t" + format.format(row.features: _*)).writeToFile(outputFile)
+        rows.map(row => row.rowId + "\t" + 1 + "\t" + row.label + "\t" + format.format(row.features: _*)).writeToFile(outputFile)
       }
       case "ARFF" => {
         val writer = new java.io.PrintWriter(new java.io.FileWriter(outputFile))

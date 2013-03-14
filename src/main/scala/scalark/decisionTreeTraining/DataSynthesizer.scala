@@ -29,7 +29,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val value = model.eval(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
-      new LabeledFeatureRow[Double](id, features, 1.0, value)
+      Row(id = id, v = features, l = value)
     }
     rows
   }
@@ -44,14 +44,14 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val trueProbability = model.eval(features)
-      new LabeledFeatureRow[Boolean](id, features, 1.0, rand.nextDouble < trueProbability)
+      Row(id, features, rand.nextDouble < trueProbability)
     }
     rows
   }
 
   def binaryClassification(nRows: Int, nModesPerClass: Int) = binaryClassificationDataAndOptimalModel(nRows, nModesPerClass)._1
 
-  def gaussianMixtureModel(nModes: Int, spikiness:Double = 1.0) = {
+  def gaussianMixtureModel(nModes: Int, spikiness: Double = 1.0) = {
     val modes = for (i <- (0 until nModes)) yield {
       val featureSubset = randomFeatureIndices
       val mean = (0 until featureSubset.size) map (i => rand.nextDouble)
@@ -73,7 +73,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     Vector.empty[Int] ++ indices.take(nFeatures)
   }
 
-  def randomVariance(dims: Int, spikiness:Double = 1.0) = {
+  def randomVariance(dims: Int, spikiness: Double = 1.0) = {
     var N = Vector.empty[IndexedSeq[Double]]
     for (i <- (0 until dims)) {
       var col: IndexedSeq[Double] = (0 until dims) map (i => rand.nextDouble)

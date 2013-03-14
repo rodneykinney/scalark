@@ -15,58 +15,42 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-/** Single data instance with a label */
-trait LabelInstance[LabelType] {
-  def label: LabelType
+trait Observation {
   def rowId: Int
+}
+
+trait Label[LabelType] {
+  def label: LabelType
+}
+
+trait Weight {
   def weight: Double
 }
 
-object LabelInstance {
-  def apply[LabelType](rowId: Int, label: LabelType, weight: Double) = new ConcreteLabelInstance(rowId, label, weight)
-  def apply[LabelType](rowId: Int, label: LabelType) = new FixedWeightLabelInstance(rowId, label)
-}
-
-class ConcreteLabelInstance[LabelType](val rowId: Int, val label: LabelType, val weight: Double) extends LabelInstance[LabelType] {}
-
-class FixedWeightLabelInstance[LabelType](val rowId: Int, val label: LabelType) extends LabelInstance[LabelType] {
-  val weight = 1.0
-}
-
-/** Single data instance with one feature value */
-trait FeatureInstance[LabelType] extends LabelInstance[LabelType] {
+trait Feature {
   def featureValue: Int
 }
 
-object FeatureInstance {
-  def apply[LabelType](labelInstance: LabelInstance[LabelType], featureValue: Int) = new FeatureInstanceSharedLabel[LabelType](labelInstance, featureValue)
-  def apply[LabelType](rowId: Int, label: LabelType, weight: Double, featureValue: Int) = new ConcreteFeatureInstance(rowId, label, weight, featureValue)
-}
-
-class FeatureInstanceSharedLabel[LabelType](private val labelInstance: LabelInstance[LabelType], val featureValue: Int) extends FeatureInstance[LabelType] {
-  def rowId = labelInstance.rowId
-  def label = labelInstance.label
-  def weight = labelInstance.weight
-}
-
-case class ConcreteFeatureInstance[LabelType](val rowId: Int, val label: LabelType, val weight: Double, val featureValue: Int) extends FeatureInstance[LabelType] {}
-
-/** Instance with two labels */
-class FeatureInstanceDelegate[LabelType1, LabelType2](val _2:FeatureInstance[LabelType2], val label:LabelType1) extends FeatureInstance[LabelType1] {
-  def rowId = _2.rowId
-  def weight = _2.weight
-  def featureValue = _2.featureValue
-  override def toString = "FeatureInstanceDelegate("+rowId+","+label+","+weight+","+featureValue+","+_2.label+")"
-}
-
-trait FeatureRow {
-  val rowId: Int
-  val weight: Double
+trait RowOfFeatures {
   val features: IndexedSeq[Int]
 }
 
-class LabeledFeatureRow[LabelType](val rowId: Int, val features: IndexedSeq[Int], val weight: Double, val label: LabelType)
-  extends FeatureRow with LabelInstance[LabelType] {
+trait LabelInstance[LabelType] extends Observation with Label[LabelType]
+trait WeightedLabelInstance[LabelType] extends Observation with Label[LabelType] with Weight
 
-  override def toString = "Row[id=" + rowId + ", label=" + label + "]"
+trait FeatureInstance[LabelType] extends LabelInstance[LabelType] with Feature
+trait WeightedFeatureInstance[LabelType] extends FeatureInstance[LabelType] with Weight
+
+trait FeatureRow extends Observation with RowOfFeatures
+trait LabeledFeatureRow[LabelType] extends LabelInstance[LabelType] with RowOfFeatures 
+
+object Instance {
+  def apply(id: Int) = new Observation { val rowId = id }
+  def apply[LabelType](id: Int, l: LabelType) = new LabelInstance[LabelType] { val rowId = id; val label = l }
+  def apply[LabelType](id: Int, v: Int, l: LabelType) = new FeatureInstance[LabelType] { val rowId = id; val featureValue = v; val label = l }
+}
+
+object Row {
+  def apply(id: Int, v: IndexedSeq[Int]) = new FeatureRow { val rowId = id; val features = v }
+  def apply[LabelType](id: Int, v: IndexedSeq[Int], l: LabelType) = new LabeledFeatureRow[LabelType] { val rowId = id; val features = v; val label = l }
 }

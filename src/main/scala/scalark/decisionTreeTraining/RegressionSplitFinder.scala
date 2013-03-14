@@ -23,16 +23,16 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
   /**
    * Given a column of input data, scan through all possible threshold values and pick the split with the smallest loss
    */
-  def findSplitCandidate(column: FeatureColumn[Double], node: TreeRegion): SplitCandidate = {
+  def findSplitCandidate(column: FeatureColumn[Double], node: TreeRegion, rowFilter: Int => Boolean = i => true): SplitCandidate = {
     // Statistics of points in the left split
     var batch = column.batch(node, 0, config.minLeafSize)
-    val scLeft = sumAndCount(batch)
+    val scLeft = sumAndCount(batch, rowFilter)
     var lCount = scLeft._1
     var lWgt = scLeft._2
     var lSum = scLeft._3
 
     // Statistics of points in the right split
-    val scRight = sumAndCount(column.range(node, lCount, node.size))
+    val scRight = sumAndCount(column.range(node, lCount, node.size), rowFilter)
     var rCount = scRight._1
     var rWgt = scRight._2
     var rSum = scRight._3
@@ -55,7 +55,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
       var stats = scLeft
       while (lCount < node.size - config.minLeafSize) {
         batch = column.batch(node, lCount, 1)
-        stats = sumAndCount(batch)
+        stats = sumAndCount(batch, rowFilter)
         lCount += stats._1
         lWgt += stats._2
         lSum += stats._3
@@ -72,15 +72,15 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
     }
   }
 
-  private def sumAndCount(s: Seq[FeatureInstance[Double]]) = {
+  private def sumAndCount(s: Seq[FeatureInstance[Double]], rowFilter: Int => Boolean) = {
     var count = 0
     var wgt = 0.0
     var sum = 0.0
     var lastfeatureValue = 0
-    for (f <- s) {
+    for (f <- s if rowFilter(f.rowId)) {
       count += 1
-      wgt += f.weight
-      sum += f.label * f.weight
+      wgt += 1
+      sum += f.label
       lastfeatureValue = f.featureValue
     }
     new Tuple4(count, wgt, sum, lastfeatureValue)

@@ -26,7 +26,7 @@ package object decisionTreeTraining {
   implicit def RowsToSortedColumns[LabelType](rows: Seq[LabeledFeatureRow[LabelType]]) = new {
     def toSortedColumns = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = mutable.ArraySeq.empty[FeatureInstance[LabelType]] ++ rows.map(r => FeatureInstance[LabelType](rowId = r.rowId, featureValue = r.features(col), weight = r.weight, label = r.label)).sortBy(_.featureValue)
+        val data = mutable.ArraySeq.empty[FeatureInstance[LabelType]] ++ rows.map(r => Instance(id = r.rowId, v = r.features(col), l = r.label)).sortBy(_.featureValue)
         new FeatureColumn[LabelType](data, col)
       }
     }
@@ -47,11 +47,18 @@ package object decisionTreeTraining {
     def readRows = {
       for (line <- io.Source.fromFile(file).getLines()) yield {
         val fields = line.split('\t')
-        new LabeledFeatureRow[Boolean](rowId = fields(0).toInt, weight = fields(1).toDouble, label = fields(2).toBoolean, features = fields.drop(3).map(_.toInt))
+        Row(id = fields(0).toInt, l = fields(2).toBoolean, v = fields.drop(3).map(_.toInt))
       }
     }
   }
 
   def using[A, B <: { def close(): Unit }](closeable: B)(f: B => A): A =
     try { f(closeable) } finally { closeable.close() }
+
+  def sampler(seed: Int, sampleRate: Double) = {
+    i: Int =>
+      {
+        new util.Random(java.nio.ByteBuffer.allocate(8).putInt(seed).putInt(i).getLong(0)).nextDouble < sampleRate
+      }
+  }
 }

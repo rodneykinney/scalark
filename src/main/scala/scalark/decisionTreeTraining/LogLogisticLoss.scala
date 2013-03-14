@@ -23,10 +23,11 @@ class LogLogisticLoss extends OrthogonalCostFunction[Boolean, LabelInstance[Bool
   def cost(x: LabelInstance[Boolean], f: Double) = math.log(1 + math.exp(if (x.label) -f else f))
   
   def optimalConstant(labels: Seq[LabelInstance[Boolean]]) = {
-    var nTotal = labels.map(_.weight).sum
-    var nPositive = labels.filter(_.label).map(_.weight).sum
-    if (nPositive == 0 || nPositive == nTotal) { nPositive += 1; nTotal += 2 }
-    math.log(nPositive / (nTotal - nPositive))
+    val (nTotal,nPositive) = ((0.0,0.0) /: labels) {(t,l) => if (l.label) (t._1+1, t._2+1) else (t._1+1,t._2)}
+    if (nPositive == 0 || nPositive == nTotal) 
+      math.log((nPositive+1) / (nTotal+1))
+    else 
+      math.log(nPositive / (nTotal - nPositive))
   }
 
   def derivative(x: LabelInstance[Boolean], f: Double) = if (x.label) -1.0 / (1.0 + math.exp(f)) else 1.0 / (1.0 + math.exp(-f))

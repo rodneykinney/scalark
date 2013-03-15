@@ -72,7 +72,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
     }
   }
 
-  private def sumAndCount(s: Seq[FeatureInstance[Double]], rowFilter: Int => Boolean) = {
+  private def sumAndCount(s: Seq[Observation with Feature with Label[Double]], rowFilter: Int => Boolean) = {
     var count = 0
     var wgt = 0.0
     var sum = 0.0

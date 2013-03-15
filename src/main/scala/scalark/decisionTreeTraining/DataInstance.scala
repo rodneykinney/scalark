@@ -35,22 +35,22 @@ trait RowOfFeatures {
   val features: IndexedSeq[Int]
 }
 
-trait LabelInstance[LabelType] extends Observation with Label[LabelType]
-trait WeightedLabelInstance[LabelType] extends Observation with Label[LabelType] with Weight
+//trait LabelInstance[LabelType] extends Observation with Label[LabelType]
+//trait WeightedLabelInstance[LabelType] extends Observation with Label[LabelType] with Weight
 
-trait FeatureInstance[LabelType] extends LabelInstance[LabelType] with Feature
-trait WeightedFeatureInstance[LabelType] extends FeatureInstance[LabelType] with Weight
+//trait FeatureInstance[LabelType] extends LabelInstance[LabelType] with Feature
+//trait WeightedFeatureInstance[LabelType] extends FeatureInstance[LabelType] with Weight
 
-trait FeatureRow extends Observation with RowOfFeatures
-trait LabeledFeatureRow[LabelType] extends LabelInstance[LabelType] with RowOfFeatures 
+//trait FeatureRow extends Observation with RowOfFeatures
+//trait LabeledFeatureRow[LabelType] extends LabelInstance[LabelType] with RowOfFeatures
 
 object Instance {
   def apply(id: Int) = new Observation { val rowId = id }
-  def apply[LabelType](id: Int, l: LabelType) = new LabelInstance[LabelType] { val rowId = id; val label = l }
-  def apply[LabelType](id: Int, v: Int, l: LabelType) = new FeatureInstance[LabelType] { val rowId = id; val featureValue = v; val label = l }
+  def apply[LabelType](id: Int, l: LabelType) = new { val rowId = id; val label = l } with Observation with Label[LabelType]
+  def apply[LabelType](id: Int, v: Int, l: LabelType) = new { val rowId = id; val featureValue = v; val label = l } with Observation with Feature with Label[LabelType] 
 }
 
 object Row {
-  def apply(id: Int, v: IndexedSeq[Int]) = new FeatureRow { val rowId = id; val features = v }
-  def apply[LabelType](id: Int, v: IndexedSeq[Int], l: LabelType) = new LabeledFeatureRow[LabelType] { val rowId = id; val features = v; val label = l }
+  def apply(id: Int, v: IndexedSeq[Int]) = new { val rowId = id; val features = v } with Observation with RowOfFeatures
+  def apply[LabelType](id: Int, v: IndexedSeq[Int], l: LabelType) = new { val rowId = id; val features = v; val label = l } with Observation with RowOfFeatures with Label[LabelType]
 }

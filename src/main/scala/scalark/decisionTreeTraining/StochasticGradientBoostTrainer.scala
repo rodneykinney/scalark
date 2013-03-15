@@ -19,10 +19,10 @@ import scala.collection._
 
 class StochasticGradientBoostTrainer(
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[Boolean, LabelInstance[Boolean]],
-  labelData: Seq[LabelInstance[Boolean]], 
+  cost: CostFunction[Boolean, Observation with Label[Boolean]],
+  labelData: Seq[Observation with Label[Boolean]],
   columns: immutable.Seq[FeatureColumn[Boolean]]) {
-  
+
   require(rowIdsInAscendingOrder(labelData))
 
   private var trees = Vector.empty[Model]
@@ -57,8 +57,8 @@ class StochasticGradientBoostTrainer(
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       val residualData = for (c <- sampledColumns) yield {
         val data = c.all(rootRegion)
-        val regressionInstances = mutable.ArraySeq.empty[FeatureInstance[Double]] ++ data.zip(cost.gradient(data, modelScores)).
-          map(t => new FeatureInstanceDelegate[Double, Boolean](t._1, -t._2))
+        val regressionInstances = mutable.ArraySeq.empty[Observation with Label[Double] with Feature] ++ data.zip(cost.gradient(data, modelScores)).
+          map(t => Instance(t._1.rowId, t._1.featureValue, -t._2))
         new FeatureColumn[Double](regressionInstances, c.columnId)
       }
 
@@ -84,9 +84,9 @@ class StochasticGradientBoostTrainer(
       _model = new AdditiveModel(trees)
     }
   }
-  
-  private def rowIdsInAscendingOrder(data: Seq[LabelInstance[Boolean]]) = {
-    data.head.rowId == 0 && data.take(data.size-1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId+1)
+
+  private def rowIdsInAscendingOrder(data: Seq[Observation]) = {
+    data.head.rowId == 0 && data.take(data.size - 1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
   }
 
 }

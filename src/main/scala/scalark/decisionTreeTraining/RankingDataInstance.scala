@@ -15,14 +15,11 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-trait QueryDocPair[LabelType] extends LabelInstance[LabelType] {
-  val queryId:Int
+trait Query {
+  val queryId: Int
 }
 
-case class ConcreteQueryDocPair[LabelType](
-val rowId: Int, 
-val label: LabelType, 
-val weight: Double, 
-val queryId:Int) 
-extends QueryDocPair[LabelType]
+object QueryDocPair {
+  def apply[L](id: Int, qId: Int, l: L) = new { val rowId = id; val queryId = qId; val label = l } with Observation with Label[L] with Query
+}
 

@@ -23,10 +23,10 @@ package object decisionTreeTraining {
   /**
    * Add method toSortedColumns to sequences of rows, to produce column-wise data from row-wise data
    */
-  implicit def RowsToSortedColumns[LabelType](rows: Seq[LabeledFeatureRow[LabelType]]) = new {
+  implicit def RowsToSortedColumns[LabelType](rows: Seq[Observation with RowOfFeatures with Label[LabelType]]) = new {
     def toSortedColumns = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = mutable.ArraySeq.empty[FeatureInstance[LabelType]] ++ rows.map(r => Instance(id = r.rowId, v = r.features(col), l = r.label)).sortBy(_.featureValue)
+        val data = mutable.ArraySeq.empty[Observation with Feature with Label[LabelType]] ++ rows.map(r => Instance(id = r.rowId, v = r.features(col), l = r.label)).sortBy(_.featureValue)
         new FeatureColumn[LabelType](data, col)
       }
     }

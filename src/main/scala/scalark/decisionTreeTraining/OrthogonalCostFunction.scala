@@ -18,7 +18,7 @@ import scala.collection._
 /**
  * An Orthogonal cost function is one in which the derivative with respect to f_i depends only on f_i
  */
-abstract class OrthogonalCostFunction[L, T <: LabelInstance[L]] extends CostFunction[L,T] {
+abstract class OrthogonalCostFunction[L,T <: Observation with Label[L]] extends CostFunction[L,T] {
 
   /** Value of the cost function for a single point */
   def cost(x: T, f: Double): Double
@@ -48,9 +48,9 @@ abstract class OrthogonalCostFunction[L, T <: LabelInstance[L]] extends CostFunc
     (for ((regionId, regionData) <- regions) yield {
       val scores = regionData.map(n => rowIdToModelScore(n.rowId))
       val delta = -regionData.zip(scores).map(t => derivative(t._1, t._2)).sum / regionData.zip(scores).map(t => secondDerivative(t._1, t._2)).sum
-      (regionId,delta)
+      (regionId, delta)
     }).toMap
   }
 
-  def totalCost(labels: Seq[T], modelEval: Function[Int, Double]) = labels.map(l => cost(l, modelEval(l.rowId))).sum
+  def totalCost(labels: Seq[T], modelEval: Int => Double) = labels.map(l => cost(l, modelEval(l.rowId))).sum
 }

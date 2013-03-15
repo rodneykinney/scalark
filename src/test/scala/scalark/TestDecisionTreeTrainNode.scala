@@ -22,7 +22,7 @@ import scala.collection.immutable._
 class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   var partition: TreePartition = _
   var column: FeatureColumn[Double] = _
-  var rows: Seq[LabeledFeatureRow[Double]] = _
+  var rows: Seq[Observation with RowOfFeatures with Label[Double]] = _
 
   before {
     init
@@ -31,7 +31,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   def init = {
     val size = 10
     val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
-    rows = (0 until size).map(i => Row(id=i, v=Vector(features(i)), l=features(i).toDouble))
+    rows = (0 until size).map(i => Row(id = i, v = Vector(features(i)), l = features(i).toDouble))
     partition = new TreePartition(size)
     column = rows.toSortedColumns.head
   }

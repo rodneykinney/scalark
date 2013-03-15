@@ -23,11 +23,11 @@ class TestRanking extends FunSuite {
   test("TotalCost") {
     val c = new RankingCost()
 
-    val rows = List(new ConcreteQueryDocPair[Int](rowId = 0, label = 0, weight = 0, queryId = 0),
-      new ConcreteQueryDocPair[Int](rowId = 1, label = 0, weight = 0, queryId = 0),
-      new ConcreteQueryDocPair[Int](rowId = 2, label = 1, weight = 0, queryId = 0),
-      new ConcreteQueryDocPair[Int](rowId = 3, label = 0, weight = 0, queryId = 1),
-      new ConcreteQueryDocPair[Int](rowId = 4, label = 1, weight = 0, queryId = 1))
+    val rows = List(QueryDocPair[Int](id = 0, l = 0, qId = 0),
+      QueryDocPair[Int](id = 1, l = 0, qId = 0),
+      QueryDocPair[Int](id = 2, l = 1, qId = 0),
+      QueryDocPair[Int](id = 3, l = 0, qId = 1),
+      QueryDocPair[Int](id = 4, l = 1, qId = 1))
 
     assert(math.abs(c.totalCost(rows, id => rows(id).label) - 3 * math.log(1 + math.exp(-1))) < 1.0e-9)
     assert(math.abs(c.totalCost(rows, id => 0) - 3 * math.log(2)) < 1.0e-9)

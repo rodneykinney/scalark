@@ -61,7 +61,7 @@ class TestRegressionTreeTrainer extends FunSuite {
     testTrainer(config, rows)
   }
 
-  def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[LabeledFeatureRow[Double]]) = {
+  def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[Observation with RowOfFeatures with Label[Double]]) = {
     val columns = rows.toSortedColumns
     val trainer = new RegressionTreeTrainer(config, columns, rows.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })

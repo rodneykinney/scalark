@@ -20,8 +20,15 @@ package scalark.decisionTreeTraining
  */
 class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Observation with Label[Boolean]] {
 
-  def cost(x: Observation with Label[Boolean], f: Double) = math.log(1 + math.exp(if (x.label) -f else f))
+  def cost[T1 <:Observation with Label[Boolean] with Score](x: T1) = math.log(1 + math.exp(if (x.label) -x.score else x.score))
   
+  def derivative[T1 <: Observation with Label[Boolean] with Score](x: T1) = if (x.label) -1.0 / (1.0 + math.exp(x.score)) else 1.0 / (1.0 + math.exp(-x.score))
+
+  def secondDerivative[T1 <: Observation with Label[Boolean] with Score](x: T1) = {
+    val sigma = 1.0 / (1.0 + math.exp(x.score))
+    sigma * (1 - sigma)
+  }
+
   def optimalConstant(labels: Seq[Observation with Label[Boolean]]) = {
     val (nTotal,nPositive) = ((0.0,0.0) /: labels) {(t,l) => if (l.label) (t._1+1, t._2+1) else (t._1+1,t._2)}
     if (nPositive == 0 || nPositive == nTotal) 
@@ -29,12 +36,4 @@ class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Observation with L
     else 
       math.log(nPositive / (nTotal - nPositive))
   }
-
-  def derivative(x: Observation with Label[Boolean], f: Double) = if (x.label) -1.0 / (1.0 + math.exp(f)) else 1.0 / (1.0 + math.exp(-f))
-
-  def secondDerivative(x: Observation with Label[Boolean], f: Double) = {
-    val sigma = 1.0 / (1.0 + math.exp(f))
-    sigma * (1 - sigma)
-  }
-
 }

@@ -26,28 +26,25 @@ class RankingCost extends CostFunction[Int, Observation with Label[Int] with Que
     0.0
   }
 
-  def gradient(docs: Seq[Observation with Label[Int] with Query], modelEval: Int => Double) = {
+  def gradient[T1 <:Observation with Label[Int] with Query with Score](docs: Seq[T1]) = {
     val gradients = new mutable.ArraySeq[Double](docs.length)
     val rowIdToIndex = docs.map(_.rowId).zipWithIndex.toMap
     for ((better, worse) <- documentPairs(docs)) {
-      val delta = 1.0 / (1 + math.exp(modelEval(worse.rowId) - modelEval(better.rowId)))
+      val delta = 1.0 / (1 + math.exp(worse.score - better.score))
       gradients(rowIdToIndex(worse.rowId)) -= delta
       gradients(rowIdToIndex(better.rowId)) += delta
     }
     gradients
   }
 
-  def totalCost(queries: Seq[Observation with Label[Int] with Query], modelEval: Int => Double) = {
+  def totalCost[T1 <: Observation with Label[Int] with Query with Score](queries: Seq[T1]) = {
     (for ((better, worse) <- documentPairs(queries)) yield {
-      math.log(1 + math.exp(modelEval(worse.rowId) - modelEval(better.rowId))).toDouble
+      math.log(1 + math.exp(worse.score - better.score))
     }).sum
   }
 
-  def optimalDelta(regions: Seq[Seq[Observation with Label[Int] with Query]], modelEval: Int => Double) = {
+  def optimalDelta[T1 <: Observation with Label[Int] with Query with Score with Region](data: Seq[T1]) = {
     Seq(0.0)
-  }
-  def optimalDelta(data: Seq[Observation with Label[Int] with Query], rowIdToRegionId: Int => Int, rowIdToModelScore: Int => Double) = {
-    x: Int => 0.0
   }
 
   private def regionGradient(data: Seq[Observation with Query with Label[Int]], rowIdToRegionIndex: Int => Int, rowIdToModelScore: Int => Double, regionValues: Seq[Double]) = {
@@ -69,7 +66,7 @@ class RankingCost extends CostFunction[Int, Observation with Label[Int] with Que
   }
 
   /** Iterate over all pairs of documents with in a query.  Yield a tuple (better,worse) for each pair of documents with a different label */
-  private def documentPairs(docs: Seq[Observation with Query with Label[Int]]) = {
+  private def documentPairs[T1 <: Observation with Query with Label[Int]](docs: Seq[T1]) = {
     for (
       query <- groupBySorted(docs, splitQueries);
       val labelGroups = groupBySorted(query, splitLabels).toIndexedSeq;

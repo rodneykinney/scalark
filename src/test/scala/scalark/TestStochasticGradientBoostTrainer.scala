@@ -21,14 +21,14 @@ import org.scalatest._
 class TestStochasticGradientBoostTrainer extends FunSuite {
   test("SGB - toy 1d") {
     val rows = Vector(
-      Row(0, Vector(0), true),
-      Row(1, Vector(1), true),
-      Row(2, Vector(1), false),
-      Row(3, Vector(1), false),
-      Row(4, Vector(2), true))
+      ObservationRowLabel(0, Vector(0), true),
+      ObservationRowLabel(1, Vector(1), true),
+      ObservationRowLabel(2, Vector(1), false),
+      ObservationRowLabel(3, Vector(1), false),
+      ObservationRowLabel(4, Vector(2), true))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => Instance(r.rowId, r.label)), rows.toSortedColumns)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns)
     val tol = 1.0e-8
 
     // Mean-value model is log(3/2)
@@ -55,16 +55,19 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
 
   test("SGB - toy 2d") {
     val rows = Vector(
-      Row(0, Vector(0, 0), true),
-      Row(1, Vector(0, 1), false),
-      Row(2, Vector(1, 0), true),
-      Row(3, Vector(1, 1), false))
+      ObservationRowLabelScore(0, Vector(0, 0), true, 0.0),
+      ObservationRowLabelScore(1, Vector(0, 1), false, 0.0),
+      ObservationRowLabelScore(2, Vector(1, 0), true, 0.0),
+      ObservationRowLabelScore(3, Vector(1, 1), false, 0.0))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => Instance(r.rowId, r.label)), rows.toSortedColumns)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns)
     val models = (0 until config.iterationCount) map (i => { trainer.nextIteration(); trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
-    val losses = models map (m => cost.totalCost(rows, id => m.eval(rows(id).features)))
+    val losses = for (m <- models) yield {
+      for (row <- rows) { row.score = m.eval(row.features) }
+      cost.totalCost(rows)
+    }
     // Losses should decrease monotonically on the training data
     for (i <- (1 until losses.length)) {
       assert(losses(i) < losses(i - 1))
@@ -72,13 +75,16 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
   }
 
   test("SGB - 2d") {
-    val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2)
+    val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2) map (row => new {val rowId = row.rowId; val label=row.label; val features = row.features; var score = 0.0} with Observation with Label[Boolean] with RowOfFeatures with Score)
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => Instance(id=r.rowId, l=r.label)), rows.toSortedColumns)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(rowId = r.rowId, label = r.label)), rows.toSortedColumns)
     val models = (0 until config.iterationCount) map (i => { trainer.nextIteration(); trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
-    val losses = models map (m => cost.totalCost(rows, id => m.eval(rows(id).features)))
+    val losses = for (m <- models) yield {
+      for (row <- rows) { row.score = m.eval(row.features) }
+      cost.totalCost(rows)
+    }
     // Losses should decrease monotonically on the training data
     for (i <- (1 until losses.length)) {
       assert(losses(i) < losses(i - 1))

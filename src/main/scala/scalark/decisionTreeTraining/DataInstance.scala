@@ -35,22 +35,17 @@ trait RowOfFeatures {
   val features: IndexedSeq[Int]
 }
 
-//trait LabelInstance[LabelType] extends Observation with Label[LabelType]
-//trait WeightedLabelInstance[LabelType] extends Observation with Label[LabelType] with Weight
-
-//trait FeatureInstance[LabelType] extends LabelInstance[LabelType] with Feature
-//trait WeightedFeatureInstance[LabelType] extends FeatureInstance[LabelType] with Weight
-
-//trait FeatureRow extends Observation with RowOfFeatures
-//trait LabeledFeatureRow[LabelType] extends LabelInstance[LabelType] with RowOfFeatures
-
-object Instance {
-  def apply(id: Int) = new Observation { val rowId = id }
-  def apply[LabelType](id: Int, l: LabelType) = new { val rowId = id; val label = l } with Observation with Label[LabelType]
-  def apply[LabelType](id: Int, v: Int, l: LabelType) = new { val rowId = id; val featureValue = v; val label = l } with Observation with Feature with Label[LabelType] 
+trait Score {
+  var score:Double
 }
 
-object Row {
-  def apply(id: Int, v: IndexedSeq[Int]) = new { val rowId = id; val features = v } with Observation with RowOfFeatures
-  def apply[LabelType](id: Int, v: IndexedSeq[Int], l: LabelType) = new { val rowId = id; val features = v; val label = l } with Observation with RowOfFeatures with Label[LabelType]
+trait Region {
+  var regionId:Int
 }
+
+case class ObservationLabel[LabelType](val rowId:Int, val label:LabelType) extends Observation with Label[LabelType]
+case class ObservationLabelFeature[LabelType](val rowId:Int, val label:LabelType, val featureValue:Int) extends Observation with Label[LabelType] with Feature
+case class ObservationLabelFeatureScore[LabelType](val rowId:Int, val label:LabelType, val featureValue:Int, var score:Double) extends Observation with Label[LabelType] with Feature with Score
+
+case class ObservationRowLabel[LabelType](val rowId:Int, val features:IndexedSeq[Int], val label:LabelType) extends Observation with RowOfFeatures with Label[LabelType]
+case class ObservationRowLabelScore[LabelType](val rowId:Int, val features:IndexedSeq[Int], val label:LabelType, var score:Double) extends Observation with RowOfFeatures with Label[LabelType] with Score

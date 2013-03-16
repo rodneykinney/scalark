@@ -26,7 +26,7 @@ package object decisionTreeTraining {
   implicit def RowsToSortedColumns[LabelType](rows: Seq[Observation with RowOfFeatures with Label[LabelType]]) = new {
     def toSortedColumns = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = mutable.ArraySeq.empty[Observation with Feature with Label[LabelType]] ++ rows.map(r => Instance(id = r.rowId, v = r.features(col), l = r.label)).sortBy(_.featureValue)
+        val data = mutable.ArraySeq.empty[Observation with Feature with Label[LabelType]] ++ rows.map(r => ObservationLabelFeature(rowId = r.rowId, featureValue = r.features(col), label = r.label)).sortBy(_.featureValue)
         new FeatureColumn[LabelType](data, col)
       }
     }
@@ -47,11 +47,11 @@ package object decisionTreeTraining {
     def readRows = {
       for (line <- io.Source.fromFile(file).getLines()) yield {
         val fields = line.split('\t')
-        Row(id = fields(0).toInt, l = fields(2).toBoolean, v = fields.drop(3).map(_.toInt))
+        ObservationRowLabel(rowId = fields(0).toInt, label = fields(2).toBoolean, features = fields.drop(3).map(_.toInt))
       }
     }
   }
-
+  
   def using[A, B <: { def close(): Unit }](closeable: B)(f: B => A): A =
     try { f(closeable) } finally { closeable.close() }
 

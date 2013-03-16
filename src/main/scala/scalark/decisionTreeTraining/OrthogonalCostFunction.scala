@@ -18,39 +18,52 @@ import scala.collection._
 /**
  * An Orthogonal cost function is one in which the derivative with respect to f_i depends only on f_i
  */
-abstract class OrthogonalCostFunction[L,T <: Observation with Label[L]] extends CostFunction[L,T] {
+abstract class OrthogonalCostFunction[L, T <: Observation with Label[L]] extends CostFunction[L, T] {
 
   /** Value of the cost function for a single point */
-  def cost(x: T, f: Double): Double
+  def cost[T1 <: T with Score](x: T1): Double
 
   /** Single-variable derivative */
-  def derivative(x: T, f: Double): Double
+  def derivative[T1 <: T with Score](x: T1): Double
 
   /** Single-variable second derivative */
-  def secondDerivative(x: T, f: Double): Double
+  def secondDerivative[T1 <: T with Score](x: T1): Double
 
+  def gradient[T1 <: T with Score](data: Seq[T1]) = {
+    for (l <- data) yield {
+      derivative(l)
+    }
+  }
+  /*
   def gradient(data: Seq[T], rowIdToModelScore: Int => Double) = {
     for (l <- data) yield {
       val modelScore = rowIdToModelScore(l.rowId)
       derivative(l, modelScore)
     }
-  }
+  }*/
 
   /** Single Newton-Raphson step to find minimum */
-  def optimalDelta(regions: Seq[Seq[T]], modelEval: Function[Int, Double]) = {
+  /*def optimalDelta(regions: Seq[Seq[T]], modelEval: Function[Int, Double]) = {
     for (nodes <- regions) yield {
       val scores = nodes.map(n => modelEval(n.rowId))
       -nodes.zip(scores).map(t => derivative(t._1, t._2)).sum / nodes.zip(scores).map(t => secondDerivative(t._1, t._2)).sum
     }
+  }*/
+  def optimalDelta[T1 <: T with Score with Region](data: Seq[T1]) = {
+    val regions = data.groupBy(row => row.regionId)
+    (for ((regionId, regionData) <- regions) yield {
+      val delta = -regionData.map(derivative(_)).sum / regionData.map(secondDerivative(_)).sum
+      (regionId, delta)
+    }).toMap
   }
-  def optimalDelta(data: Seq[T], rowIdToRegionId: Int => Int, rowIdToModelScore: Int => Double) = {
+  /*  def optimalDelta(data: Seq[T], rowIdToRegionId: Int => Int, rowIdToModelScore: Int => Double) = {
     val regions = data.groupBy(row => rowIdToRegionId(row.rowId))
     (for ((regionId, regionData) <- regions) yield {
       val scores = regionData.map(n => rowIdToModelScore(n.rowId))
       val delta = -regionData.zip(scores).map(t => derivative(t._1, t._2)).sum / regionData.zip(scores).map(t => secondDerivative(t._1, t._2)).sum
       (regionId, delta)
     }).toMap
-  }
+  }*/
 
-  def totalCost(labels: Seq[T], modelEval: Int => Double) = labels.map(l => cost(l, modelEval(l.rowId))).sum
+  def totalCost[T1 <: T with Score](labels: Seq[T1]) = labels.map(cost(_)).sum
 }

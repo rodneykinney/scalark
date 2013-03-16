@@ -29,7 +29,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val value = model.eval(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
-      Row(id = id, v = features, l = value)
+      ObservationRowLabel(rowId = id, features = features, label = value)
     }
     rows
   }
@@ -44,7 +44,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val trueProbability = model.eval(features)
-      Row(id, features, rand.nextDouble < trueProbability)
+      ObservationRowLabel(rowId=id, features=features, label = rand.nextDouble < trueProbability)
     }
     rows
   }

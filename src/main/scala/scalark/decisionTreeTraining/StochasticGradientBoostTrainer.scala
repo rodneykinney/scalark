@@ -28,8 +28,9 @@ class StochasticGradientBoostTrainer(
   private var trees = Vector.empty[Model]
   private val rootRegion = new TreeRegion(0, 0, labelData.size)
   private var _model: Model = _
-  private val modelScores = new mutable.ArraySeq[Double](labelData.size)
+  //  private val modelScores = new mutable.ArraySeq[Double](labelData.size)
   private val rand = new util.Random(config.randomSeed)
+  private val data = for (row <- labelData) yield { new { val rowId = row.rowId; val label = row.label; var score = 0.0; var regionId = -1 } with Observation with Label[Boolean] with Score with Region }
 
   def model = _model
 
@@ -43,8 +44,8 @@ class StochasticGradientBoostTrainer(
   def nextIteration() = {
     if (trees.size == 0) {
       // Initialize with constant value
-      val mean = cost.optimalConstant(labelData)
-      (0 until labelData.size) foreach (i => modelScores(i) = mean)
+      val mean = cost.optimalConstant(data)
+      data foreach (_.score = mean)
       _model = new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
       trees = trees :+ _model
     } else {
@@ -56,22 +57,30 @@ class StochasticGradientBoostTrainer(
       val rowSampler = sampler(sampleSeed, config.rowSampleRate)
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       val residualData = for (c <- sampledColumns) yield {
-        val data = c.all(rootRegion)
-        val regressionInstances = mutable.ArraySeq.empty[Observation with Label[Double] with Feature] ++ data.zip(cost.gradient(data, modelScores)).
-          map(t => Instance(t._1.rowId, t._1.featureValue, -t._2))
+        val columnData = for (row <- c.all(rootRegion)) yield { ObservationLabelFeatureScore(rowId = row.rowId, label = row.label, featureValue = row.featureValue, score = data(row.rowId).score)}
+        val regressionInstances = mutable.ArraySeq.empty[Observation with Label[Double] with Feature] ++
+          (for ((row, gradient) <- columnData.zip(cost.gradient(columnData))) yield {
+            ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradient)
+          })
         new FeatureColumn[Double](regressionInstances, c.columnId)
       }
 
       // Regression fit to the gradient
-      val regressionTrainer = new RegressionTreeTrainer(config.treeConfig, residualData, labelData.size, rowSampler)
+      val regressionTrainer = new RegressionTreeTrainer(config.treeConfig, residualData, data.size, rowSampler)
       val tree = regressionTrainer.train
 
       // Optimize constant values at leaves of the tree
       val (leaves, splits) = tree.nodes.partition(_.isInstanceOf[DecisionTreeLeaf])
+      for (
+        leaf <- leaves;
+        row <- residualData.head.all(regressionTrainer.partition(leaf.regionId))
+      ) {
+        data(row.rowId).regionId = leaf.regionId
+      }
       val rowIdToRegionId = leaves.flatMap(l => residualData.head.all(regressionTrainer.partition(l.regionId)).map(row => (row.rowId, l.regionId))).toMap
-      val regionIdToDelta = cost.optimalDelta(labelData.filter(r => rowSampler(r.rowId)), rowIdToRegionId, modelScores)
-      for (row <- labelData) {
-        modelScores(row.rowId) += regionIdToDelta(rowIdToRegionId(row.rowId)) * config.learningRate
+      val regionIdToDelta = cost.optimalDelta(data.filter(r => rowSampler(r.rowId)))
+      for (row <- data) {
+        row.score += regionIdToDelta(rowIdToRegionId(row.rowId)) * config.learningRate
       }
       val replacedLeaves = for (l <- leaves) yield {
         val delta = regionIdToDelta(l.regionId)

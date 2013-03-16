@@ -19,7 +19,6 @@ trait Query {
   val queryId: Int
 }
 
-object QueryDocPair {
-  def apply[L](id: Int, qId: Int, l: L) = new { val rowId = id; val queryId = qId; val label = l } with Observation with Label[L] with Query
-}
+case class ObservationLabelQuery[LabelType](val rowId:Int, val queryId:Int, label:LabelType) extends Observation with Label[LabelType] with Query
+case class ObservationLabelQueryScore[LabelType](val rowId:Int, val queryId:Int, label:LabelType, var score:Double) extends Observation with Label[LabelType] with Query with Score
 

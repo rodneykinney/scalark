@@ -75,7 +75,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
   }
 
   test("SGB - 2d") {
-    val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2) map (row => new {val rowId = row.rowId; val label=row.label; val features = row.features; var score = 0.0} with Observation with Label[Boolean] with RowOfFeatures with Score)
+    val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2) map (_.withScore(0.0))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(rowId = r.rowId, label = r.label)), rows.toSortedColumns)

@@ -19,7 +19,7 @@ import scala.collection._
 
 class StochasticGradientBoostTrainer(
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[Boolean, Observation with Label[Boolean]],
+  cost: CostFunction[Boolean, Label[Boolean]],
   labelData: Seq[Observation with Label[Boolean]],
   columns: immutable.Seq[FeatureColumn[Boolean]]) {
 
@@ -28,9 +28,8 @@ class StochasticGradientBoostTrainer(
   private var trees = Vector.empty[Model]
   private val rootRegion = new TreeRegion(0, 0, labelData.size)
   private var _model: Model = _
-  //  private val modelScores = new mutable.ArraySeq[Double](labelData.size)
   private val rand = new util.Random(config.randomSeed)
-  private val data = for (row <- labelData) yield { new { val rowId = row.rowId; val label = row.label; var score = 0.0; var regionId = -1 } with Observation with Label[Boolean] with Score with Region }
+  private val data = for (row <- labelData) yield ObservationLabelScoreRegion(rowId = row.rowId, label = row.label, score = 0.0, regionId = -1)
 
   def model = _model
 
@@ -57,7 +56,7 @@ class StochasticGradientBoostTrainer(
       val rowSampler = sampler(sampleSeed, config.rowSampleRate)
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       val residualData = for (c <- sampledColumns) yield {
-        val columnData = for (row <- c.all(rootRegion)) yield { ObservationLabelFeatureScore(rowId = row.rowId, label = row.label, featureValue = row.featureValue, score = data(row.rowId).score)}
+        val columnData = for (row <- c.all(rootRegion)) yield { ObservationLabelFeatureScore(rowId = row.rowId, label = row.label, featureValue = row.featureValue, score = data(row.rowId).score) }
         val regressionInstances = mutable.ArraySeq.empty[Observation with Label[Double] with Feature] ++
           (for ((row, gradient) <- columnData.zip(cost.gradient(columnData))) yield {
             ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradient)
@@ -77,10 +76,9 @@ class StochasticGradientBoostTrainer(
       ) {
         data(row.rowId).regionId = leaf.regionId
       }
-      val rowIdToRegionId = leaves.flatMap(l => residualData.head.all(regressionTrainer.partition(l.regionId)).map(row => (row.rowId, l.regionId))).toMap
       val regionIdToDelta = cost.optimalDelta(data.filter(r => rowSampler(r.rowId)))
       for (row <- data) {
-        row.score += regionIdToDelta(rowIdToRegionId(row.rowId)) * config.learningRate
+        row.score += regionIdToDelta(row.regionId) * config.learningRate
       }
       val replacedLeaves = for (l <- leaves) yield {
         val delta = regionIdToDelta(l.regionId)

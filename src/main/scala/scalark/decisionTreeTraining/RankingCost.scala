@@ -22,11 +22,11 @@ import scala.collection._
  */
 class RankingCost extends CostFunction[Int, Observation with Label[Int] with Query] {
 
-  def optimalConstant(labels: Seq[Observation with Label[Int] with Query]) = {
+  def optimalConstant[T <: Observation with Label[Int] with Query](labels: Seq[T]) = {
     0.0
   }
 
-  def gradient[T1 <:Observation with Label[Int] with Query with Score](docs: Seq[T1]) = {
+  def gradient[T <: Observation with Label[Int] with Query with Score](docs: Seq[T]) = {
     val gradients = new mutable.ArraySeq[Double](docs.length)
     val rowIdToIndex = docs.map(_.rowId).zipWithIndex.toMap
     for ((better, worse) <- documentPairs(docs)) {
@@ -37,13 +37,13 @@ class RankingCost extends CostFunction[Int, Observation with Label[Int] with Que
     gradients
   }
 
-  def totalCost[T1 <: Observation with Label[Int] with Query with Score](queries: Seq[T1]) = {
+  def totalCost[T <: Observation with Label[Int] with Query with Score](queries: Seq[T]) = {
     (for ((better, worse) <- documentPairs(queries)) yield {
       math.log(1 + math.exp(worse.score - better.score))
     }).sum
   }
 
-  def optimalDelta[T1 <: Observation with Label[Int] with Query with Score with Region](data: Seq[T1]) = {
+  def optimalDelta[T <: Observation with Label[Int] with Query with Score with Region](data: Seq[T]) = {
     Seq(0.0)
   }
 
@@ -66,7 +66,7 @@ class RankingCost extends CostFunction[Int, Observation with Label[Int] with Que
   }
 
   /** Iterate over all pairs of documents with in a query.  Yield a tuple (better,worse) for each pair of documents with a different label */
-  private def documentPairs[T1 <: Observation with Query with Label[Int]](docs: Seq[T1]) = {
+  private def documentPairs[T <: Observation with Query with Label[Int]](docs: Seq[T]) = {
     for (
       query <- groupBySorted(docs, splitQueries);
       val labelGroups = groupBySorted(query, splitLabels).toIndexedSeq;

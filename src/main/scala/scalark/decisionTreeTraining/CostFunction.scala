@@ -19,7 +19,7 @@ trait CostFunction[L, T <: Label[L]] {
   /**
    * Constant value that minimizes the cost for this set of instances (e.g. mean value)
    */
-  def optimalConstant(data: Seq[T]): Double
+  def optimalConstant[T1 <: T](data: Seq[T1]): Double
   /**
    * Gradient of the cost function
    */

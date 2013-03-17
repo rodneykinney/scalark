@@ -35,4 +35,22 @@ class TestRanking extends FunSuite {
     assert(math.abs(c.totalCost(rows) - 3 * math.log(2)) < 1.0e-9)
     assert(c.gradient(rows) === Seq(-.5, -.5, 1, -.5, .5))
   }
+
+  test("Optimal Delta") {
+    val rows = List(new { val rowId: Int = 0; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 1; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 2; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 3; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 4; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region)
+
+    val costs = Range(1, 6).map(new RankingCost(_))
+    val x = costs.head.totalCost(rows)
+    assert(math.abs(costs.head.totalCost(rows) - 6 * math.log(2)) < 1.0e-9)
+    val scores = for (cost <- costs) yield { val d = cost.optimalDelta(rows); d(1) - d(0) }
+    // With more accurate LBFGS, scores should converge to log(2)
+    val target = math.log(2)
+    for ((score,previousScore) <- scores.drop(1).zip(scores)) {
+      assert(math.abs(target - score) < math.abs(target - previousScore))
+    }
+  }
 }

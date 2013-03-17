@@ -44,6 +44,7 @@ trait Region {
 }
 
 case class ObservationLabel[LabelType](val rowId: Int, val label: LabelType) extends Observation with Label[LabelType]
+case class ObservationLabelScore[LabelType](val rowId: Int, val label: LabelType, var score:Double) extends Observation with Label[LabelType] with Score
 case class ObservationLabelScoreRegion[LabelType](val rowId: Int, val label: LabelType, var score:Double, var regionId:Int) extends Observation with Label[LabelType] with Score with Region
 case class ObservationLabelFeature[LabelType](val rowId: Int, val label: LabelType, val featureValue: Int) extends Observation with Label[LabelType] with Feature {
   def withScore(score: Double = 0.0) = ObservationLabelFeatureScore(rowId, label, featureValue, score)

@@ -17,11 +17,11 @@ package scalark.decisionTreeTraining
 
 import scala.collection._
 
-class StochasticGradientBoostTrainer(
+class StochasticGradientBoostTrainer[L](
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[Boolean, Label[Boolean]],
-  labelData: Seq[Observation with Label[Boolean]],
-  columns: immutable.Seq[FeatureColumn[Boolean]]) {
+  cost: CostFunction[L, Label[L]],
+  labelData: Seq[Observation with Label[L]],
+  columns: immutable.Seq[FeatureColumn[L]]) {
 
   require(rowIdsInAscendingOrder(labelData))
 

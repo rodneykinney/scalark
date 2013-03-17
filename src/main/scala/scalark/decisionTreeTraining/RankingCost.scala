@@ -16,11 +16,13 @@ limitations under the License.
 package scalark.decisionTreeTraining
 
 import scala.collection._
+import breeze.optimize._
+import breeze.linalg._
 /**
  * Cost function for ranking.  Cost is a sum over pairs of documents with unequal labels.  Each term is log-logistic function of the different of the two scores
  * Important:  This implementation assumes that input data is in a canonical order, sorted first by query-id and then by label
  */
-class RankingCost extends CostFunction[Int, Observation with Label[Int] with Query] {
+class RankingCost(maxIterations: Int = 1, memory: Int = 1) extends CostFunction[Int, Observation with Label[Int] with Query] {
 
   def optimalConstant[T <: Observation with Label[Int] with Query](labels: Seq[T]) = {
     0.0
@@ -44,20 +46,28 @@ class RankingCost extends CostFunction[Int, Observation with Label[Int] with Que
   }
 
   def optimalDelta[T <: Observation with Label[Int] with Query with Score with Region](data: Seq[T]) = {
-    Seq(0.0)
+    val regionCount = data.map(_.regionId).max + 1
+    val diff = new DiffFunction[DenseVector[Double]] {
+      def calculate(regionValues: DenseVector[Double]) = {
+        val cost = totalCost(data.map(row => ObservationLabelQueryScore(rowId = row.rowId, queryId = row.queryId, label = row.label, score = row.score + regionValues(row.regionId))))
+        val gradient = regionGradient(data, regionValues)
+        (cost, gradient)
+      }
+    }
+    val lbfgs = new LBFGS[DenseVector[Double]](maxIter = maxIterations, m = memory)
+    val delta = lbfgs.minimize(diff, DenseVector.zeros[Double](regionCount))
+    i: Int => delta(i)
   }
 
-  private def regionGradient(data: Seq[Observation with Query with Label[Int]], rowIdToRegionIndex: Int => Int, rowIdToModelScore: Int => Double, regionValues: Seq[Double]) = {
-    val regionGradients = mutable.ArraySeq[Double](regionValues.size)
+  private def regionGradient(data: Seq[Observation with Query with Label[Int] with Score with Region], regionValues: DenseVector[Double]) = {
+    val regionGradients = DenseVector.zeros[Double](regionValues.size)
     for ((better, worse) <- documentPairs(data)) {
-      val betterRegion = rowIdToRegionIndex(better.rowId)
-      val worseRegion = rowIdToRegionIndex(worse.rowId)
+      val betterRegion = better.regionId
+      val worseRegion = worse.regionId
       if (betterRegion != worseRegion) {
         val grad = 1.0 / (1 + math.exp(
-          rowIdToModelScore(better.rowId) +
-            regionValues(betterRegion) -
-            rowIdToModelScore(worse.rowId) -
-            regionValues(worseRegion)))
+          better.score + regionValues(betterRegion)
+            - worse.score - regionValues(worseRegion)))
         regionGradients(betterRegion) -= grad
         regionGradients(worseRegion) += grad
       }
@@ -65,7 +75,7 @@ class RankingCost extends CostFunction[Int, Observation with Label[Int] with Que
     regionGradients
   }
 
-  /** Iterate over all pairs of documents with in a query.  Yield a tuple (better,worse) for each pair of documents with a different label */
+  /** Iterate over all pairs of documents within each query.  Yield a tuple (better,worse) for each pair of documents with a different label */
   private def documentPairs[T <: Observation with Query with Label[Int]](docs: Seq[T]) = {
     for (
       query <- groupBySorted(docs, splitQueries);

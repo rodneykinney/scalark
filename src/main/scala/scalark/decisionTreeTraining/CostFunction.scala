@@ -23,16 +23,14 @@ trait CostFunction[L, T <: Label[L]] {
   /**
    * Gradient of the cost function
    */
-  //def gradient(data: Seq[T], rowIdToModelScore: Int => Double): Seq[Double]
   def gradient[T1 <: T with Score](data: Seq[T1]): Seq[Double]
   /**
    * Total cost for this set of instances
    */
-  //def totalCost(data: Seq[T], rowIdToModelScore: Int => Double): Double
   def totalCost[T1 <: T with Score](data: Seq[T1]): Double
   /**
    * Finds the constant value that should be added to the model score in each region to minimize the cost for each set of instances
+   * Return map of regionId to the optimal delta for that region
    */
-  //def optimalDelta(data: Seq[T], rowIdToRegionId: Int => Int, rowIdToModelScore: Int => Double): Int => Double
   def optimalDelta[T1 <: T with Score with Region](data: Seq[T1]): Int => Double
 }

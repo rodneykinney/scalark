@@ -21,16 +21,16 @@ import scala.collection.immutable._
 /**
  * Trains a regression decision tree
  */
-class RegressionTreeTrainer(
+class RegressionTreeTrainer[T <: Observation with Feature with Label[Double]](
   val config: DecisionTreeTrainConfig,
-  val columns: Seq[FeatureColumn[Double]],
+  val columns: Seq[FeatureColumn[Double, T]],
   val rowCount: Int,
   val rowFilter: Int => Boolean = i => true) {
   val partition = new TreePartition(rowCount)
   private val splitter = new RegressionSplitFinder(config)
 
   private var _model: DecisionTreeModel = {
-    val (total,sum) = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + 1, t._2 + fi.label) }
+    val (total, sum) = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + 1, t._2 + fi.label) }
     val mean = sum / total
     new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
   }

@@ -20,20 +20,20 @@ import org.scalatest._
 import scala.collection.immutable._
 
 class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
-  var partition: TreePartition = _
-  var column: FeatureColumn[Double] = _
-  var rows: Seq[Observation with RowOfFeatures with Label[Double]] = _
+  val size = 10
+  val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
+  val partition: TreePartition = new TreePartition(size)
+//  val converter = (row: ObservationRowLabel[Double], col: Int) => row.singleFeature(col)//ObservationLabelFeature(rowId = row.rowId, label = row.label, featureValue = row.features(col))
+  var column: FeatureColumn[Double, ObservationLabelFeature[Double]] = _
+  var rows: Seq[ObservationRowLabel[Double]] = _
 
   before {
     init
   }
 
   def init = {
-    val size = 10
-    val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
     rows = (0 until size).map(i => ObservationRowLabel(rowId = i, features = Vector(features(i)), label = features(i).toDouble))
-    partition = new TreePartition(size)
-    column = rows.toSortedColumns.head
+    column = rows.toSortedColumns[Double, ObservationLabelFeature[Double]](_.singleFeature(_)).head
   }
 
   test("Node Range") {
@@ -110,4 +110,5 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
     assert(math.abs(loss2 + split.gain - loss1) < 1.0e-5)
 
   }
+
 }

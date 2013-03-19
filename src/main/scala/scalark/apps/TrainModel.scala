@@ -35,9 +35,9 @@ object TrainModel {
 
   def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String) {
     val rows = new java.io.File(input).readRows
-    val columns = rows.toSeq.toSortedColumns
+    val columns = rows.toSeq.toSortedColumns[Boolean, ObservationLabelFeature[Boolean]](_.singleFeature(_))
     val labels = rows.map(r => ObservationLabel(r.rowId, r.label)).toList
-    val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss, labels, columns).train 
+    val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]], labels, columns).train 
     val treesJson = trees.toJson
     using (new java.io.PrintWriter(new java.io.File(output))) {
       p => p.println(treesJson)

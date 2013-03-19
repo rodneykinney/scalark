@@ -17,20 +17,21 @@ package scalark.decisionTreeTraining
 import scala.collection._
 /**
  * A column of data instances, each with a label and feature value
- * 
+ *
  * Together with a TreePartition instance, this defines the data instances that exist within a given node of a decision tree
  */
-class FeatureColumn[L](private val instances: mutable.ArraySeq[Observation with Feature with Label[L]], val columnId: Int) {
-  
+class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: Seq[T], val columnId: Int) {
+  private[this] val instances  = mutable.ArraySeq.empty[T] ++ data
+
   def size = instances.size
 
   /** All instances within the given region */
-  def all(node: TreeRegion): IndexedSeq[Observation with Feature with Label[L]] = range(node, 0, node.size)
+  def all(node: TreeRegion): IndexedSeq[T] = range(node, 0, node.size)
 
   /**
    * A subsequence of data instances within the given region
    */
-  def range(node: TreeRegion, start: Int, length: Int): IndexedSeq[Observation with Feature with Label[L]] = {
+  def range(node: TreeRegion, start: Int, length: Int): IndexedSeq[T] = {
     for (i <- (node.start + start until node.start + length))
       yield instances(i)
   }
@@ -40,7 +41,7 @@ class FeatureColumn[L](private val instances: mutable.ArraySeq[Observation with 
    * At least minsize instances will be returned, if available
    * All instances with the same feature value will be included in the batch
    */
-  def batch(node: TreeRegion, first: Int, minimumsize: Int): List[Observation with Feature with Label[L]] = {
+  def batch(node: TreeRegion, first: Int, minimumsize: Int): List[T] = {
     val minsize = math.min(minimumsize, node.size - first)
     minsize match {
       case 0 => Nil
@@ -59,7 +60,7 @@ class FeatureColumn[L](private val instances: mutable.ArraySeq[Observation with 
    * Repartition the data within the parent node into the two child nodes
    * Maintain sort order of rows within each of the child nodes
    */
-  def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, partition:Int => Boolean) = {
+  def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, partition: Int => Boolean) = {
     val size = leftChild.size
 
     val tmp = (parent.start until parent.start + parent.size).map(instances(_)).toIndexedSeq

@@ -18,10 +18,10 @@ package scalark.decisionTreeTraining
 class StochasticGradientBoostTrainConfig(
   val iterationCount: Int,
   val learningRate: Double,
+  leafCount: Int,
+  minLeafSize: Int,
   val rowSampleRate: Double = 1.0,
   val featureSampleRate: Double = 1.0,
-  val randomSeed:Int = 117,
-  leafCount: Int,
-  minLeafSize: Int) {
+  val randomSeed: Int = 117) {
   val treeConfig = new DecisionTreeTrainConfig(leafCount = leafCount, minLeafSize = minLeafSize)
 }

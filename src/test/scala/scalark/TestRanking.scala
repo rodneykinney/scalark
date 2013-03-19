@@ -18,6 +18,7 @@ package scalark
 import scalark.decisionTreeTraining._
 import org.scalatest._
 import scala.util._
+import scala.collection._
 
 class TestRanking extends FunSuite {
   test("TotalCost") {
@@ -49,8 +50,24 @@ class TestRanking extends FunSuite {
     val scores = for (cost <- costs) yield { val d = cost.optimalDelta(rows); d(1) - d(0) }
     // With more accurate LBFGS, scores should converge to log(2)
     val target = math.log(2)
-    for ((score,previousScore) <- scores.drop(1).zip(scores)) {
+    for ((score, previousScore) <- scores.drop(1).zip(scores)) {
       assert(math.abs(target - score) < math.abs(target - previousScore))
     }
+  }
+  test("Toy 1d") {
+    val features = mutable.ArraySeq.empty[ObservationLabelFeatureQuery[Int]] ++
+      List(ObservationLabelFeatureQuery(rowId = 0, queryId = 0, label = 0, featureValue = 0),
+        ObservationLabelFeatureQuery(rowId = 1, queryId = 0, label = 0, featureValue = 1),
+        ObservationLabelFeatureQuery(rowId = 2, queryId = 0, label = 1, featureValue = 0),
+        ObservationLabelFeatureQuery(rowId = 3, queryId = 0, label = 1, featureValue = 1),
+        ObservationLabelFeatureQuery(rowId = 4, queryId = 0, label = 1, featureValue = 1))
+
+    val columns = new FeatureColumn[Int, ObservationLabelFeatureQuery[Int]](features.sortBy(_.featureValue), 0)
+
+    val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
+    val cost = new RankingCost().asInstanceOf[CostFunction[Int, Observation with Label[Int]]]
+    val trainer = new StochasticGradientBoostTrainer[Int](config, cost, features.map(r => ObservationLabel(r.rowId, r.label)), immutable.Seq(columns))
+    val tol = 1.0e-8
+    //trainer.train
   }
 }

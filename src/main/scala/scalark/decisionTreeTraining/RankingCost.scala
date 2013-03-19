@@ -24,11 +24,11 @@ import breeze.linalg._
  */
 class RankingCost(maxIterations: Int = 1, memory: Int = 1) extends CostFunction[Int, Observation with Label[Int] with Query] {
 
-  def optimalConstant[T <: Observation with Label[Int] with Query](labels: Seq[T]) = {
+  def optimalConstant[T1 <: Observation with Label[Int] with Query](labels: Seq[T1]) = {
     0.0
   }
 
-  def gradient[T <: Observation with Label[Int] with Query with Score](docs: Seq[T]) = {
+  def gradient[T1 <: Observation with Label[Int] with Query with Score](docs: Seq[T1]) = {
     val gradients = new mutable.ArraySeq[Double](docs.length)
     val rowIdToIndex = docs.map(_.rowId).zipWithIndex.toMap
     for ((better, worse) <- documentPairs(docs)) {
@@ -39,13 +39,13 @@ class RankingCost(maxIterations: Int = 1, memory: Int = 1) extends CostFunction[
     gradients
   }
 
-  def totalCost[T <: Observation with Label[Int] with Query with Score](queries: Seq[T]) = {
+  def totalCost[T1 <: Observation with Label[Int] with Query with Score](queries: Seq[T1]) = {
     (for ((better, worse) <- documentPairs(queries)) yield {
       math.log(1 + math.exp(worse.score - better.score))
     }).sum
   }
 
-  def optimalDelta[T <: Observation with Label[Int] with Query with Score with Region](data: Seq[T]) = {
+  def optimalDelta[T1 <: Observation with Label[Int] with Query with Score with Region](data: Seq[T1]) = {
     val regionCount = data.map(_.regionId).max + 1
     val diff = new DiffFunction[DenseVector[Double]] {
       def calculate(regionValues: DenseVector[Double]) = {
@@ -59,7 +59,7 @@ class RankingCost(maxIterations: Int = 1, memory: Int = 1) extends CostFunction[
     i: Int => delta(i)
   }
 
-  private def regionGradient(data: Seq[Observation with Query with Label[Int] with Score with Region], regionValues: DenseVector[Double]) = {
+  private def regionGradient[T1 <: Observation with Label[Int] with Query with Score with Region](data: Seq[T1], regionValues: DenseVector[Double]) = {
     val regionGradients = DenseVector.zeros[Double](regionValues.size)
     for ((better, worse) <- documentPairs(data)) {
       val betterRegion = better.regionId

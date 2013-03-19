@@ -23,12 +23,19 @@ package object decisionTreeTraining {
   /**
    * Add method toSortedColumns to sequences of rows, to produce column-wise data from row-wise data
    */
-  implicit def RowsToSortedColumns[LabelType](rows: Seq[Observation with RowOfFeatures with Label[LabelType]]) = new {
-    def toSortedColumns = {
+  implicit def RowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
+    def toSortedColumns[LabelType, ColumnType <: Observation with Feature with Label[LabelType]](columnBuilder: (RowType, Int) => ColumnType) = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = mutable.ArraySeq.empty[Observation with Feature with Label[LabelType]] ++ rows.map(r => ObservationLabelFeature(rowId = r.rowId, featureValue = r.features(col), label = r.label)).sortBy(_.featureValue)
-        new FeatureColumn[LabelType](data, col)
+        val data = mutable.ArraySeq.empty[ColumnType] ++ rows.sortBy(_.features(col)).map(r => columnBuilder(r, col))
+        new FeatureColumn[LabelType, ColumnType](data, col)
       }
+    }
+  }
+
+  def rowsToColumns[LabelType, RowType <: RowOfFeatures, ColumnType <: Observation with Feature with Label[LabelType]](columnBuilder: (RowType, Int) => ColumnType)(rows: Seq[RowType]) = {
+    for (col <- (0 until rows.head.features.length)) yield {
+      val data = mutable.ArraySeq.empty[ColumnType] ++ rows.sortBy(_.features(col)).map(r => columnBuilder(r, col))
+      new FeatureColumn[LabelType, ColumnType](data, col)
     }
   }
 

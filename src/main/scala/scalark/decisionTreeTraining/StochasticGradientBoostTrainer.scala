@@ -19,9 +19,9 @@ import scala.collection._
 
 class StochasticGradientBoostTrainer[L](
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[L, Label[L]],
+  cost: CostFunction[L, Observation with Label[L]],
   labelData: Seq[Observation with Label[L]],
-  columns: immutable.Seq[FeatureColumn[L]]) {
+  columns: immutable.Seq[FeatureColumn[L, Observation with Feature with Label[L]]]) {
 
   require(rowIdsInAscendingOrder(labelData))
 
@@ -57,11 +57,10 @@ class StochasticGradientBoostTrainer[L](
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       val residualData = for (c <- sampledColumns) yield {
         val columnData = for (row <- c.all(rootRegion)) yield { ObservationLabelFeatureScore(rowId = row.rowId, label = row.label, featureValue = row.featureValue, score = data(row.rowId).score) }
-        val regressionInstances = mutable.ArraySeq.empty[Observation with Label[Double] with Feature] ++
-          (for ((row, gradient) <- columnData.zip(cost.gradient(columnData))) yield {
+        val regressionInstances = (for ((row, gradient) <- columnData.zip(cost.gradient(columnData))) yield {
             ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradient)
           })
-        new FeatureColumn[Double](regressionInstances, c.columnId)
+        new FeatureColumn[Double, ObservationLabelFeature[Double]](regressionInstances, c.columnId)
       }
 
       // Regression fit to the gradient

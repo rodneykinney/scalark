@@ -44,8 +44,8 @@ trait Region {
 }
 
 case class ObservationLabel[LabelType](val rowId: Int, val label: LabelType) extends Observation with Label[LabelType]
-case class ObservationLabelScore[LabelType](val rowId: Int, val label: LabelType, var score:Double) extends Observation with Label[LabelType] with Score
-case class ObservationLabelScoreRegion[LabelType](val rowId: Int, val label: LabelType, var score:Double, var regionId:Int) extends Observation with Label[LabelType] with Score with Region
+case class ObservationLabelScore[LabelType](val rowId: Int, val label: LabelType, var score: Double) extends Observation with Label[LabelType] with Score
+case class ObservationLabelScoreRegion[LabelType](val rowId: Int, val label: LabelType, var score: Double, var regionId: Int) extends Observation with Label[LabelType] with Score with Region
 case class ObservationLabelFeature[LabelType](val rowId: Int, val label: LabelType, val featureValue: Int) extends Observation with Label[LabelType] with Feature {
   def withScore(score: Double = 0.0) = ObservationLabelFeatureScore(rowId, label, featureValue, score)
 }
@@ -56,6 +56,10 @@ case class ObservationLabelFeatureScoreRegion[LabelType](val rowId: Int, val lab
 
 case class ObservationRowLabel[LabelType](val rowId: Int, val features: IndexedSeq[Int], val label: LabelType) extends Observation with RowOfFeatures with Label[LabelType] {
   def withScore(score: Double) = ObservationRowLabelScore(rowId, features, label, score)
+  def singleFeature(col: Int) = ObservationLabelFeature(rowId = rowId, featureValue = features(col), label = label)
 }
-case class ObservationRowLabelScore[LabelType](val rowId: Int, val features: IndexedSeq[Int], val label: LabelType, var score: Double) extends Observation with RowOfFeatures with Label[LabelType] with Score
+case class ObservationRowLabelScore[LabelType](val rowId: Int, val features: IndexedSeq[Int], val label: LabelType, var score: Double) extends Observation with RowOfFeatures with Label[LabelType] with Score {
+  def singleFeature(col: Int) = ObservationLabelFeatureScore(rowId = rowId, featureValue = features(col), label = label, score = score)
+
+}
 

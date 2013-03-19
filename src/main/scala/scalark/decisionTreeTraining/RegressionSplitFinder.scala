@@ -23,7 +23,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
   /**
    * Given a column of input data, scan through all possible threshold values and pick the split with the smallest loss
    */
-  def findSplitCandidate(column: FeatureColumn[Double], node: TreeRegion, rowFilter: Int => Boolean = i => true): SplitCandidate = {
+  def findSplitCandidate[T <: Observation with Feature with Label[Double]](column: FeatureColumn[Double, T], node: TreeRegion, rowFilter: Int => Boolean = i => true): SplitCandidate = {
     // Statistics of points in the left split
     var batch = column.batch(node, 0, config.minLeafSize)
     val scLeft = sumAndCount(batch, rowFilter)
@@ -37,7 +37,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
     var rWgt = scRight._2
     var rSum = scRight._3
 
-    if (lCount < config.minLeafSize || rCount < config.minLeafSize) 
+    if (lCount < config.minLeafSize || rCount < config.minLeafSize)
       null
     else {
 
@@ -72,7 +72,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
     }
   }
 
-  private def sumAndCount(s: Seq[Observation with Feature with Label[Double]], rowFilter: Int => Boolean) = {
+  private def sumAndCount[T <: Observation with Feature with Label[Double]](s: Seq[T], rowFilter: Int => Boolean) = {
     var count = 0
     var wgt = 0.0
     var sum = 0.0

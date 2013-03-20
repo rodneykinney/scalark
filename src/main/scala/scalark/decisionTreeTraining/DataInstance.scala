@@ -58,6 +58,7 @@ case class ObservationRowLabel[LabelType](val rowId: Int, val features: IndexedS
   def withScore(score: Double) = ObservationRowLabelScore(rowId, features, label, score)
   def singleFeature(col: Int) = ObservationLabelFeature(rowId = rowId, featureValue = features(col), label = label)
 }
+
 case class ObservationRowLabelScore[LabelType](val rowId: Int, val features: IndexedSeq[Int], val label: LabelType, var score: Double) extends Observation with RowOfFeatures with Label[LabelType] with Score {
   def singleFeature(col: Int) = ObservationLabelFeatureScore(rowId = rowId, featureValue = features(col), label = label, score = score)
 

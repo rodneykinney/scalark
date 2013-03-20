@@ -24,7 +24,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
   val partition: TreePartition = new TreePartition(size)
 //  val converter = (row: ObservationRowLabel[Double], col: Int) => row.singleFeature(col)//ObservationLabelFeature(rowId = row.rowId, label = row.label, featureValue = row.features(col))
-  var column: FeatureColumn[Double, ObservationLabelFeature[Double]] = _
+  var column: FeatureColumn[Double, Observation with Feature with Label[Double]] = _
   var rows: Seq[ObservationRowLabel[Double]] = _
 
   before {
@@ -33,7 +33,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
 
   def init = {
     rows = (0 until size).map(i => ObservationRowLabel(rowId = i, features = Vector(features(i)), label = features(i).toDouble))
-    column = rows.toSortedColumns[Double, ObservationLabelFeature[Double]](_.singleFeature(_)).head
+    column = rows.toSortedColumns[Double, Observation with Feature with Label[Double]].head
   }
 
   test("Node Range") {

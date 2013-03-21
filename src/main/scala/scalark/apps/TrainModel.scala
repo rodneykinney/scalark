@@ -38,7 +38,7 @@ object TrainModel {
     val columns = rows.toSeq.toSortedColumns[Boolean, Observation with Feature with Label[Boolean]]
     val dummy = Vector.empty[ObservationLabelRowQuery[Int]].toSortedColumns[Int, Observation with Query with Feature with Label[Int]]
     val labels = rows.map(r => ObservationLabel(r.rowId, r.label)).toList
-    val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]], labels, columns).train 
+    val trees = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]], labels, columns).train() 
     val treesJson = trees.toJson
     using (new java.io.PrintWriter(new java.io.File(output))) {
       p => p.println(treesJson)

@@ -24,7 +24,6 @@ class StochasticGradientBoostTrainer[L, T <: Observation with Label[L]](
   columns: immutable.Seq[FeatureColumn[L, T with Feature]])
   (implicit scoreDecorator: T => DecorateWithScoreAndRegion[T]){
 
-  //require(rowIdsInAscendingOrder(labelData))
   require(labelData.validate)
 
   private var trees = Vector.empty[Model]
@@ -35,14 +34,17 @@ class StochasticGradientBoostTrainer[L, T <: Observation with Label[L]](
 
   def model = _model
 
-  def train = {
+  def train(iterationCallback: () => Any = () => ()) = {
     while (trees.size < config.iterationCount) {
       nextIteration()
+      iterationCallback()
     }
     model
   }
+  
+  def trainError = cost.totalCost(data)
 
-  def nextIteration() = {
+  private def nextIteration() = {
     if (trees.size == 0) {
       // Initialize with constant value
       val mean = cost.optimalConstant(data)

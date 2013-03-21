@@ -26,28 +26,27 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
       ObservationRowLabel(2, Vector(1), false),
       ObservationRowLabel(3, Vector(1), false),
       ObservationRowLabel(4, Vector(2), true))
-    val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
-    val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean,Observation with Label[Boolean]]]
+    val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
+    val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
     val trainer = new StochasticGradientBoostTrainer[Boolean, Observation with Label[Boolean]](config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Label[Boolean]])
     val tol = 1.0e-8
 
+    var models = Vector.empty[Model]
+    trainer.train(() => { models = models :+ trainer.model })
     // Mean-value model is log(3/2)
-    trainer.nextIteration()
-    rows.foreach(r => assertWithin(trainer.model.eval(r.features), math.log(1.5), tol))
+    rows.foreach(r => assertWithin(models(0).eval(r.features), math.log(1.5), tol))
 
     // After one iteration, tree splits the range into three nodes
-    trainer.nextIteration()
-    assertWithin(trainer.model.eval(rows(0).features), math.log(1.5) + 5. / 3, tol)
-    assertWithin(trainer.model.eval(rows(4).features), math.log(1.5) + 5. / 3, tol)
-    assertWithin(trainer.model.eval(rows(1).features), math.log(1.5) - 10. / 9, tol)
-    assertWithin(trainer.model.eval(rows(2).features), math.log(1.5) - 10. / 9, tol)
-    assertWithin(trainer.model.eval(rows(3).features), math.log(1.5) - 10. / 9, tol)
+    assertWithin(models(1).eval(rows(0).features), math.log(1.5) + 5. / 3, tol)
+    assertWithin(models(1).eval(rows(4).features), math.log(1.5) + 5. / 3, tol)
+    assertWithin(models(1).eval(rows(1).features), math.log(1.5) - 10. / 9, tol)
+    assertWithin(models(1).eval(rows(2).features), math.log(1.5) - 10. / 9, tol)
+    assertWithin(models(1).eval(rows(3).features), math.log(1.5) - 10. / 9, tol)
 
     // Middle range should converge to log(0.5)
-    var delta = math.abs(trainer.model.eval(rows(1).features) - math.log(0.5))
-    for (i <- (1 to 3)) {
-      trainer.nextIteration()
-      val newDelta = math.abs(trainer.model.eval(rows(1).features) - math.log(0.5))
+    var delta = math.abs(models(1).eval(rows(1).features) - math.log(0.5))
+    for (i <- (2 to 4)) {
+      val newDelta = math.abs(models(i).eval(rows(1).features) - math.log(0.5))
       assert(newDelta < delta)
       delta = newDelta
     }
@@ -62,7 +61,8 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Score with Label[Boolean]])
-    val models = (0 until config.iterationCount) map (i => { trainer.nextIteration(); trainer.model })
+    var models = Vector.empty[Model]
+    trainer.train(() => { models = models :+ trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
     val losses = for (m <- models) yield {
       for (row <- rows) { row.score = m.eval(row.features) }
@@ -79,7 +79,8 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(rowId = r.rowId, label = r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Score with Label[Boolean]])
-    val models = (0 until config.iterationCount) map (i => { trainer.nextIteration(); trainer.model })
+    var models = Vector.empty[Model]
+    trainer.train(() => { models = models :+ trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
     val losses = for (m <- models) yield {
       for (row <- rows) { row.score = m.eval(row.features) }

@@ -42,10 +42,10 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
     else {
 
       // Loss function before the split
-      val originalLoss = -(lWgt + rWgt) * ((lSum + rSum) * (lSum + rSum)) / ((lWgt + rWgt) * (lWgt + rWgt))
+      val originalLoss = - ((lSum + rSum) * (lSum + rSum)) / (lWgt + rWgt)
 
       // Loss at the current split
-      var loss = -lWgt * lSum * lSum / (lWgt * lWgt) - rWgt * rSum * rSum / (rWgt * rWgt)
+      var loss = -lSum * lSum / lWgt - rSum * rSum / rWgt
       var minLoss = loss
 
       // Split candidate with the lowest current loss

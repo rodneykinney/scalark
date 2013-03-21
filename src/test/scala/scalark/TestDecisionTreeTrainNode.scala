@@ -77,14 +77,14 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
     var parent = partition.root
 
     // Best split is [1,2,2,2,3,4,5,6,8] [20]
-    var split = splitter.findSplitCandidate(column, parent)
+    var split = splitter.findSplitCandidate(column, parent).get
     assert(split.threshold === 8)
     var leftIds = column.range(parent, 0, parent.size).filter(_.featureValue <= split.threshold).map(_.rowId).toSet
     var (left, right) = partition.split(parent, leftIds.size)
     column.repartition(parent, left, right, leftIds)
 
     // Best split of left side is [1,2,2,2,3,4] [5,6,8]
-    split = splitter.findSplitCandidate(column, left)
+    split = splitter.findSplitCandidate(column, left).get
     assert(split.threshold === 4)
     leftIds = column.range(left, 0, left.size).filter(_.featureValue <= split.threshold).map(_.rowId).toSet
     parent = left
@@ -92,7 +92,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
     column.repartition(parent, left, right, leftIds)
 
     // Best split is [5,6] [8]
-    split = splitter.findSplitCandidate(column, right)
+    split = splitter.findSplitCandidate(column, right).get
     assert(split.threshold === 6)
   }
 

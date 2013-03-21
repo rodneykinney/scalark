@@ -22,10 +22,10 @@ package object decisionTreeTraining {
   /**
    * Add method toSortedColumns to sequences of rows, to produce column-wise data from row-wise data
    */
-  implicit def RowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
+  implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
     def toSortedColumns[LabelType, ColumnType <: Observation with Feature with Label[LabelType]](implicit featureSelector: RowType => SelectSingleFeature[LabelType, ColumnType]) = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = mutable.ArraySeq.empty[ColumnType] ++ rows.sortBy(_.features(col)).map(_.selectSingleFeature(col))
+        val data = rows.sortBy(_.features(col)).map(_.selectSingleFeature(col))
         new FeatureColumn[LabelType, ColumnType](data, col)
       }
     }
@@ -48,11 +48,23 @@ package object decisionTreeTraining {
     def selectSingleFeature(col: Int) = new ObservationLabelFeatureQueryScore(rowId = row.rowId, featureValue = row.features(col), label = row.label, queryId = row.queryId, score = row.score)
   }
 
-  def rowsToColumns[LabelType, RowType <: RowOfFeatures, ColumnType <: Observation with Feature with Label[LabelType]](columnBuilder: (RowType, Int) => ColumnType)(rows: Seq[RowType]) = {
-    for (col <- (0 until rows.head.features.length)) yield {
-      val data = mutable.ArraySeq.empty[ColumnType] ++ rows.sortBy(_.features(col)).map(r => columnBuilder(r, col))
-      new FeatureColumn[LabelType, ColumnType](data, col)
-    }
+  implicit def ValidateRowIds(data: Seq[Observation]) = new {
+    def validate = data.head.rowId == 0 && data.take(data.size - 1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
+  }
+  implicit def ValidateRowAndQueryIds(data: Seq[Observation with Query]) = new {
+    def validate = data.head.rowId == 0 && data.take(data.size - 1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
+  }
+
+  trait DecorateWithScoreAndRegion[T] {
+    def withScoreAndRegion(score: Double, regionId: Int): T with Score with Region
+  }
+
+  implicit def decorateObservation[L](row: Observation with Label[L]) = new DecorateWithScoreAndRegion[Observation with Label[L]] {
+    def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelScoreRegion(rowId = row.rowId, label = row.label, score = score, regionId = regionId)
+  }
+
+  implicit def decorateObservationWithQuery[L](row: Observation with Query with Label[L]) = new DecorateWithScoreAndRegion[Observation with Query with Label[L]] {
+    def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelQueryScoreRegion(rowId = row.rowId, label = row.label, score = score, regionId = regionId, queryId = row.queryId)
   }
 
   implicit def FileWriter(lines: Seq[String]) = new {

@@ -24,4 +24,5 @@ case class ObservationLabelRowQuery[LabelType](val rowId:Int, val queryId:Int, v
 case class ObservationLabelFeatureQuery[LabelType](val rowId:Int, val queryId:Int, label:LabelType, featureValue:Int) extends Observation with Label[LabelType] with Query with Feature
 case class ObservationLabelFeatureQueryScore[LabelType](val rowId:Int, val queryId:Int, label:LabelType, featureValue:Int, var score:Double) extends Observation with Label[LabelType] with Query with Feature with Score
 case class ObservationLabelQueryScore[LabelType](val rowId:Int, val queryId:Int, label:LabelType, var score:Double) extends Observation with Label[LabelType] with Query with Score
+case class ObservationLabelQueryScoreRegion[LabelType](val rowId:Int, val queryId:Int, label:LabelType, var score:Double, var regionId:Int) extends Observation with Label[LabelType] with Query with Score with Region
 

@@ -65,9 +65,9 @@ class TestRanking extends FunSuite {
     val columns = new FeatureColumn[Int, ObservationLabelFeatureQuery[Int]](features.sortBy(_.featureValue), 0)
 
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
-    val cost = new RankingCost().asInstanceOf[CostFunction[Int, Observation with Label[Int]]]
-    val trainer = new StochasticGradientBoostTrainer[Int](config, cost, features.map(r => ObservationLabel(r.rowId, r.label)), immutable.Seq(columns))
+    val cost = new RankingCost()
+    val trainer = new StochasticGradientBoostTrainer[Int, Observation with Query with Label[Int]](config, cost, features.map(r => ObservationLabelQuery(rowId = r.rowId, label = r.label, queryId = r.queryId)), immutable.Seq(columns))
     val tol = 1.0e-8
-    //trainer.train
+    trainer.train
   }
 }

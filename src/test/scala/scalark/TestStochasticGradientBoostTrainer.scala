@@ -28,7 +28,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
       ObservationRowLabel(4, Vector(2), true))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean,Observation with Label[Boolean]]]
-    val trainer = new StochasticGradientBoostTrainer[Boolean](config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Label[Boolean]])
+    val trainer = new StochasticGradientBoostTrainer[Boolean, Observation with Label[Boolean]](config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Label[Boolean]])
     val tol = 1.0e-8
 
     // Mean-value model is log(3/2)

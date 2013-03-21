@@ -46,7 +46,7 @@ class RegressionTreeTrainer[T <: Observation with Feature with Label[Double]](
 
   def nextIteration(): SplitCandidate = {
     if (candidates == null) {
-      candidates = new PriorityQueue[SplitCandidate]()(Ordering[Double].on[SplitCandidate](_.gain)) ++ columns.map(splitter.findSplitCandidate(_, partition.root, rowFilter)).filter(_ != null)
+      candidates = new PriorityQueue[SplitCandidate]()(Ordering[Double].on[SplitCandidate](_.gain)) ++ columns.map(splitter.findSplitCandidate(_, partition.root, rowFilter)).filter(! _.isEmpty).map(_.get)
     }
     if (candidates.size > 0) {
       val bestCandidate = candidates.dequeue
@@ -59,8 +59,8 @@ class RegressionTreeTrainer[T <: Observation with Feature with Label[Double]](
       val leftIds = column.range(splitNode, 0, splitNode.size).filter(_.featureValue <= bestCandidate.threshold).map(_.rowId).toSet
       val (left, right) = partition.split(splitNode, leftIds.size)
       columns.foreach(_.repartition(splitNode, left, right, leftIds))
-      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, left, rowFilter)).filter(_ != null)
-      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, right, rowFilter)).filter(_ != null)
+      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, left, rowFilter)).filter(! _.isEmpty ).map(_.get)
+      candidates = candidates ++ columns.map(splitter.findSplitCandidate(_, right, rowFilter)).filter(! _.isEmpty).map(_.get)
 
       _model = _model.merge(new DecisionTreeModel(
         Vector(new DecisionTreeSplit(splitNode.regionId, left.regionId, right.regionId, bestCandidate),

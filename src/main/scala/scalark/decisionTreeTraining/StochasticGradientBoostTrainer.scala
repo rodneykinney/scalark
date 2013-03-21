@@ -17,19 +17,21 @@ package scalark.decisionTreeTraining
 
 import scala.collection._
 
-class StochasticGradientBoostTrainer[L](
+class StochasticGradientBoostTrainer[L, T <: Observation with Label[L]](
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[L, Observation with Label[L]],
-  labelData: Seq[Observation with Label[L]],
-  columns: immutable.Seq[FeatureColumn[L, Observation with Feature with Label[L]]]) {
+  cost: CostFunction[L, T],
+  labelData: Seq[T],
+  columns: immutable.Seq[FeatureColumn[L, T with Feature]])
+  (implicit scoreDecorator: T => DecorateWithScoreAndRegion[T]){
 
-  require(rowIdsInAscendingOrder(labelData))
+  //require(rowIdsInAscendingOrder(labelData))
+  require(labelData.validate)
 
   private var trees = Vector.empty[Model]
   private val rootRegion = new TreeRegion(0, 0, labelData.size)
   private var _model: Model = _
   private val rand = new util.Random(config.randomSeed)
-  private val data = for (row <- labelData) yield ObservationLabelScoreRegion(rowId = row.rowId, label = row.label, score = 0.0, regionId = -1)
+  private val data = for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)
 
   def model = _model
 
@@ -55,10 +57,11 @@ class StochasticGradientBoostTrainer[L](
       val columnSampler = sampler(sampleSeed, config.featureSampleRate)
       val rowSampler = sampler(sampleSeed, config.rowSampleRate)
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
+      val gradients = new mutable.ArraySeq[Double](data.size)
+      data.zip(cost.gradient(data)) foreach {t => gradients(t._1.rowId) = t._2}
       val residualData = for (c <- sampledColumns) yield {
-        val columnData = for (row <- c.all(rootRegion)) yield { ObservationLabelFeatureScore(rowId = row.rowId, label = row.label, featureValue = row.featureValue, score = data(row.rowId).score) }
-        val regressionInstances = (for ((row, gradient) <- columnData.zip(cost.gradient(columnData))) yield {
-            ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradient)
+        val regressionInstances = (for (row <- c.all(rootRegion)) yield {
+            ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradients(row.rowId))
           })
         new FeatureColumn[Double, ObservationLabelFeature[Double]](regressionInstances, c.columnId)
       }

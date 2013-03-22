@@ -28,7 +28,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
       ObservationRowLabel(4, Vector(2), true))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
-    val trainer = new StochasticGradientBoostTrainer[Boolean, Observation with Label[Boolean]](config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Label[Boolean]])
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     val tol = 1.0e-8
 
     var models = Vector.empty[Model]
@@ -60,7 +60,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
       ObservationRowLabelScore(3, Vector(1, 1), false, 0.0))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(r.rowId, r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Score with Label[Boolean]])
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     var models = Vector.empty[Model]
     trainer.train(() => { models = models :+ trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
@@ -78,7 +78,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2) map (_.withScore(0.0))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(r => ObservationLabel(rowId = r.rowId, label = r.label)), rows.toSortedColumns[Boolean, Observation with Feature with Score with Label[Boolean]])
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     var models = Vector.empty[Model]
     trainer.train(() => { models = models :+ trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))

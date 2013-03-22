@@ -17,12 +17,12 @@ package scalark.decisionTreeTraining
 
 import scala.collection._
 
-class StochasticGradientBoostTrainer[L, T <: Observation with Label[L]](
+class StochasticGradientBoostTrainer[L, T <: Observation](
   config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[L, T],
-  labelData: Seq[T],
-  columns: immutable.Seq[FeatureColumn[L, T with Feature]])
-  (implicit scoreDecorator: T => DecorateWithScoreAndRegion[T]){
+  cost: CostFunction[L, T with Label[L]],
+  labelData: Seq[T with Label[L]],
+  columns: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])
+  (implicit scoreDecorator: T with Label[L]=> DecorateWithScoreAndRegion[T with Label[L]]){
 
   require(labelData.validate)
 

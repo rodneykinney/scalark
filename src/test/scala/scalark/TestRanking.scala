@@ -55,18 +55,25 @@ class TestRanking extends FunSuite {
     }
   }
   test("Toy 1d") {
-    val features = mutable.ArraySeq.empty[ObservationLabelFeatureQuery[Int]] ++
-      List(ObservationLabelFeatureQuery(rowId = 0, queryId = 0, label = 0, featureValue = 0),
+    /*
+    val features = 
+      List(ObservationLabelFeatureQuery(rowId = 0, queryId = 0, label = 0, features=Vector(0)),
         ObservationLabelFeatureQuery(rowId = 1, queryId = 0, label = 0, featureValue = 1),
-        ObservationLabelFeatureQuery(rowId = 2, queryId = 0, label = 1, featureValue = 0),
+        ObservationLabelFeatureQuery(rowId = 2, queryId = 0, label = 1, features=Vector(0)),
         ObservationLabelFeatureQuery(rowId = 3, queryId = 0, label = 1, featureValue = 1),
         ObservationLabelFeatureQuery(rowId = 4, queryId = 0, label = 1, featureValue = 1))
 
     val columns = new FeatureColumn[Int, ObservationLabelFeatureQuery[Int]](features.sortBy(_.featureValue), 0)
-
-    val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
+    */
+    val rows = List(ObservationLabelRowQuery(rowId = 0, queryId = 0, label = 0, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 1, queryId = 0, label = 0, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 2, queryId = 0, label = 1, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 3, queryId = 0, label = 1, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 4, queryId = 0, label = 1, features = Vector(0)))
+    val columns = rows.toSortedColumns
+    val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
-    val trainer = new StochasticGradientBoostTrainer[Int, Observation with Query with Label[Int]](config, cost, features.map(r => ObservationLabelQuery(rowId = r.rowId, label = r.label, queryId = r.queryId)), immutable.Seq(columns))
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows, columns)
     val tol = 1.0e-8
     trainer.train()
   }

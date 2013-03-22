@@ -18,7 +18,7 @@ package scalark.decisionTreeTraining
 /**
  * Log-Logistic loss function: log(1 + exp(-yf))
  */
-class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Label[Boolean]] {
+class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Observation with Label[Boolean]] {
 
   def cost[T <: Label[Boolean] with Score](x: T) = math.log(1 + math.exp(if (x.label) -x.score else x.score))
 

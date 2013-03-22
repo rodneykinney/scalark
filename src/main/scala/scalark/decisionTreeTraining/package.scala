@@ -23,10 +23,10 @@ package object decisionTreeTraining {
    * Add method toSortedColumns to sequences of rows, to produce column-wise data from row-wise data
    */
   implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
-    def toSortedColumns[LabelType, ColumnType <: Observation with Feature with Label[LabelType]](implicit featureSelector: RowType => SelectSingleFeature[LabelType, ColumnType]) = {
+    def toSortedColumns[LabelType, ColumnType <: Observation](implicit featureSelector: RowType => SelectSingleFeature[LabelType, ColumnType with Feature with Label[LabelType]]) = {
       for (col <- (0 until rows.head.features.length)) yield {
         val data = rows.sortBy(_.features(col)).map(_.selectSingleFeature(col))
-        new FeatureColumn[LabelType, ColumnType](data, col)
+        new FeatureColumn[LabelType, ColumnType with Feature with Label[LabelType]](data, col)
       }
     }
   }
@@ -49,10 +49,16 @@ package object decisionTreeTraining {
   }
 
   implicit def ValidateRowIds(data: Seq[Observation]) = new {
-    def validate = data.head.rowId == 0 && data.take(data.size - 1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
+    def validate = data.head.rowId == 0 && data.zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
   }
-  implicit def ValidateRowAndQueryIds(data: Seq[Observation with Query]) = new {
-    def validate = data.head.rowId == 0 && data.take(data.size - 1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
+  implicit def ValidateRowAndQueryIds(data: Seq[Observation with Query with Label[Int]]) = new {
+    def validate = data.head.rowId == 0 &&
+      data.zip(data.drop(1)).forall(t => {
+        val (row, nextRow) = t
+        nextRow.rowId == row.rowId + 1 &&
+          (nextRow.queryId == row.queryId + 1 ||
+            nextRow.label >= row.label)
+      })
   }
 
   trait DecorateWithScoreAndRegion[T] {

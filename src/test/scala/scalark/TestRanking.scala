@@ -20,7 +20,12 @@ import org.scalatest._
 import scala.util._
 import scala.collection._
 
-class TestRanking extends FunSuite {
+class TestRanking extends FunSuite with BeforeAndAfter {
+  before {
+    breeze.util.logging.ConfiguredLogging.configuration = breeze.config.Configuration.fromMap(immutable.Map(
+      "log.level" -> "warn"))
+  }
+
   test("TotalCost") {
     val c = new RankingCost()
 
@@ -48,33 +53,39 @@ class TestRanking extends FunSuite {
     val x = costs.head.totalCost(rows)
     assert(math.abs(costs.head.totalCost(rows) - 6 * math.log(2)) < 1.0e-9)
     val scores = for (cost <- costs) yield { val d = cost.optimalDelta(rows); d(1) - d(0) }
-    // With more accurate LBFGS, scores should converge to log(2)
+    // With more accurate LBFGS, difference in scores should converge to log(2)
     val target = math.log(2)
     for ((score, previousScore) <- scores.drop(1).zip(scores)) {
       assert(math.abs(target - score) < math.abs(target - previousScore))
     }
   }
   test("Toy 1d") {
-    /*
-    val features = 
-      List(ObservationLabelFeatureQuery(rowId = 0, queryId = 0, label = 0, features=Vector(0)),
-        ObservationLabelFeatureQuery(rowId = 1, queryId = 0, label = 0, featureValue = 1),
-        ObservationLabelFeatureQuery(rowId = 2, queryId = 0, label = 1, features=Vector(0)),
-        ObservationLabelFeatureQuery(rowId = 3, queryId = 0, label = 1, featureValue = 1),
-        ObservationLabelFeatureQuery(rowId = 4, queryId = 0, label = 1, featureValue = 1))
-
-    val columns = new FeatureColumn[Int, ObservationLabelFeatureQuery[Int]](features.sortBy(_.featureValue), 0)
-    */
     val rows = List(ObservationLabelRowQuery(rowId = 0, queryId = 0, label = 0, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 1, queryId = 0, label = 0, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 1, queryId = 0, label = 0, features = Vector(1)),
       ObservationLabelRowQuery(rowId = 2, queryId = 0, label = 1, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 3, queryId = 0, label = 1, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 4, queryId = 0, label = 1, features = Vector(0)))
+      ObservationLabelRowQuery(rowId = 3, queryId = 0, label = 1, features = Vector(1)),
+      ObservationLabelRowQuery(rowId = 4, queryId = 0, label = 1, features = Vector(1)))
     val columns = rows.toSortedColumns
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, columns)
-    val tol = 1.0e-8
-    trainer.train()
+    var models = Vector.empty[Model]
+    trainer.train(() => { models = models :+ trainer.model })
+    // Cost should decrease monotonically
+    val costs = for (m <- models) yield {
+      val scoredRows = for (row <- rows) yield row.withScoreAndRegion(score = m.eval(row.features), regionId = 0)
+      cost.totalCost(scoredRows)
+    }
+    for ((nextCost, cost) <- costs.drop(1).zip(costs)) {
+      assert(nextCost <= cost)
+    }
+    // Score difference should converge to log(2)
+    val target = math.log(2)
+    val convergence = for (m <- models) yield {
+      m.eval(rows(1).features) - m.eval(rows(0).features)
+    }
+    for ((nextDiff, diff) <- convergence.drop(1).zip(convergence)) {
+      assert(math.abs(nextDiff - target) <= math.abs(diff - target))
+    }
   }
 }

@@ -64,13 +64,13 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     var models = Vector.empty[Model]
     trainer.train(() => { models = models :+ trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
-    val losses = for (m <- models) yield {
+    val costs = for (m <- models) yield {
       for (row <- rows) { row.score = m.eval(row.features) }
       cost.totalCost(rows)
     }
     // Losses should decrease monotonically on the training data
-    for (i <- (1 until losses.length)) {
-      assert(losses(i) < losses(i - 1))
+    for (i <- (1 until costs.length)) {
+      assert(costs(i) < costs(i - 1))
     }
   }
 
@@ -82,13 +82,13 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     var models = Vector.empty[Model]
     trainer.train(() => { models = models :+ trainer.model })
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
-    val losses = for (m <- models) yield {
+    val costs = for (m <- models) yield {
       for (row <- rows) { row.score = m.eval(row.features) }
       cost.totalCost(rows)
     }
     // Losses should decrease monotonically on the training data
-    for (i <- (1 until losses.length)) {
-      assert(losses(i) < losses(i - 1))
+    for (i <- (1 until costs.length)) {
+      assert(costs(i) < costs(i - 1))
     }
   }
 

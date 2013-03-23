@@ -22,7 +22,7 @@ import breeze.linalg._
  * Cost function for ranking.  Cost is a sum over pairs of documents with unequal labels.  Each term is log-logistic function of the different of the two scores
  * Important:  This implementation assumes that input data is in a canonical order, sorted first by query-id and then by label
  */
-class RankingCost(maxIterations: Int = 1, memory: Int = 1) extends CostFunction[Int, Observation with Label[Int] with Query] {
+class RankingCost(maxIterations: Int = 2, memory: Int = 2) extends CostFunction[Int, Observation with Label[Int] with Query] {
 
   def optimalConstant[T1 <: Observation with Label[Int] with Query](labels: Seq[T1]) = {
     0.0

@@ -30,14 +30,3 @@ case class GaussianModel(val means: IndexedSeq[Double], val variance: IndexedSeq
   }
 }
 
-/** 
- * Bayes optimal classifier for boolean classification
- * Returned score is probability that label = true
- */
-case class BayesOptimalBinaryModel(val positiveModel:Model, val negativeModel:Model) extends Model {
-  def eval(features:Seq[Int]) = {
-    val positiveScore = positiveModel.eval(features)
-    val negativeScore = negativeModel.eval(features)
-    positiveScore / (positiveScore + negativeScore)
-  }
-}

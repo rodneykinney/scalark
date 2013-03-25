@@ -34,22 +34,32 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     rows
   }
 
-  def binaryClassificationDataAndOptimalModel(nRows: Int, nModesPerClass: Int) = {
-    val model = new BayesOptimalBinaryModel(gaussianMixtureModel(nModesPerClass), gaussianMixtureModel(nModesPerClass))
-    val data = binaryClassificationData(nRows, model)
-    (data, model)
-  }
-
-  def binaryClassificationData(nRows: Int, model: Model) = {
-    val rows = for (id <- (0 until nRows)) yield {
+  def generateData[L](nRows: Int, generator: GenerativeModel[L]) = {
+    for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
-      val trueProbability = model.eval(features)
-      ObservationRowLabel(rowId=id, features=features, label = rand.nextDouble < trueProbability)
+      ObservationRowLabel(rowId = id, features = features, label = generator.assignLabel(features, rand))
     }
-    rows
   }
 
-  def binaryClassification(nRows: Int, nModesPerClass: Int) = binaryClassificationDataAndOptimalModel(nRows, nModesPerClass)._1
+  def binaryClassification(nRows: Int, nModesPerClass: Int, spikiness: Double = 2.5) = {
+    generateData(nRows, new GenerativeModel(List(gaussianMixtureModel(nModesPerClass, spikiness), gaussianMixtureModel(nModesPerClass, spikiness)), _ > 0))
+  }
+
+  def ranking(nQueries: Int, minResultsPerQuery: Int, maxResultsPerQuery: Int, nClasses: Int, nModesPerClass: Int, spikiness: Double = 2.5) = {
+    val generator = new GenerativeModel((0 until nClasses).map(n => gaussianMixtureModel(nModesPerClass, spikiness)).toSeq, i => i)
+    var rowId = 0
+    (0 until nQueries) flatMap (queryId => {
+      val rows = (for (i <- (0 until (minResultsPerQuery + rand.nextInt(maxResultsPerQuery - minResultsPerQuery)))) yield {
+        val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
+        (features, generator.assignLabel(features, rand))
+      })
+      val queryRows = rows.sortBy(_._2).zipWithIndex.map(t => t match {
+        case ((f, l), i) => ObservationLabelRowQuery(rowId = rowId + i, queryId = queryId, label = l, features = f)
+      })
+      rowId += queryRows.size
+      queryRows
+    })
+  }
 
   def gaussianMixtureModel(nModes: Int, spikiness: Double = 1.0) = {
     val modes = for (i <- (0 until nModes)) yield {

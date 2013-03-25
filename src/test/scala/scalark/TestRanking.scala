@@ -88,4 +88,23 @@ class TestRanking extends FunSuite with BeforeAndAfter {
       assert(math.abs(nextDiff - target) <= math.abs(diff - target))
     }
   }
+
+  test("3d") {
+    val synthesizer = new DataSynthesizer(3, 0, 1000)
+    val rows = synthesizer.ranking(nQueries = 100, minResultsPerQuery = 2, maxResultsPerQuery = 20, nClasses = 4, nModesPerClass = 2)
+    val columns = rows.toSortedColumns
+    val config = new StochasticGradientBoostTrainConfig(iterationCount=20,leafCount=4,learningRate=1.0,minLeafSize=1)
+    val cost = new RankingCost()
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows, columns)
+    var models = Vector.empty[Model]
+    trainer.train(() => { models = models :+ trainer.model })
+    // Cost should decrease monotonically
+    val costs = for (m <- models) yield {
+      val scoredRows = for (row <- rows) yield row.withScoreAndRegion(score = m.eval(row.features), regionId = 0)
+      cost.totalCost(scoredRows)
+    }
+    for ((nextCost, cost) <- costs.drop(1).zip(costs)) {
+      assert(nextCost <= cost)
+    }
+  }
 }

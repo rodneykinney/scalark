@@ -39,9 +39,9 @@ object GenerateTSV {
     minFeatureValue: Int = 0,
     maxFeatureValue: Int = 1000,
     format: String = "TSV") = {
-    val model = io.Source.fromFile(modelFile).getLines.mkString(" ").asJson.convertTo[Model]
+    val models = io.Source.fromFile(modelFile).getLines().map(_.asJson.convertTo[Model]).toSeq
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue)
-    val rows = synthesizer.binaryClassificationData(rowCount, model)
+    val rows = synthesizer.generateData(rowCount, new GenerativeModel(models,i => i))
     format match {
       case "TSV" => {
         val format = (1 to rows.head.features.size).map(i => "%d").mkString("\t")

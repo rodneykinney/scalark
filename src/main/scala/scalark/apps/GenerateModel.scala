@@ -34,9 +34,9 @@ object GenerateModel {
 
   def apply(nDim: Int, nModesPerClass: Int, outputFile: String, minFeatureValue: Int = 0, maxFeatureValue: Int = 1000, seed: Int = 117, spikiness: Double = 1.0) = {
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed)
-    val model = new BayesOptimalBinaryModel(synthesizer.gaussianMixtureModel(nModesPerClass, spikiness), synthesizer.gaussianMixtureModel(nModesPerClass, spikiness))
+    val models = List(synthesizer.gaussianMixtureModel(nModesPerClass, spikiness), synthesizer.gaussianMixtureModel(nModesPerClass, spikiness))
     using(new java.io.PrintWriter(new java.io.File(outputFile))) {
-      w => w.println(model.toJson)
+      w => for (m <- models) w.println(m.toJson)
     }
   }
 }

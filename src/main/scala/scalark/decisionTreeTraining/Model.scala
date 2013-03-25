@@ -15,6 +15,8 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
+import scala.util._
+
 trait Model {
   def eval(features: Seq[Int]): Double
 }
@@ -22,4 +24,31 @@ trait Model {
 /** A model that is the sum of other models */
 case class AdditiveModel(val models:Seq[Model]) extends Model {
   def eval(features:Seq[Int]) = models.map(_.eval(features)).sum
+}
+
+/**
+ * Assigns labels randomly, given a set of models
+ * Each model produces the relative probability of that class
+ */
+case class GenerativeModel[L](val models:Seq[Model], labelConvert:Int=>L) {
+  def assignLabel(features:Seq[Int], rand:Random) = {
+    val rawWeights = models map (_.eval(features))
+    assert(rawWeights.forall(_ >= 0))
+    val totalWeight = rawWeights.sum
+    val weights = rawWeights map (_/totalWeight)
+    var score = rand.nextDouble()
+    val index = (0 /: weights) {(i,w) => {score -= w ; if (score < 0) i else i+1}}
+    labelConvert(index)
+  }
+}
+
+/**
+ * Assigns labels by maximum likelihood,
+ * given a set of models producing the relative probability of that class
+ */
+case class MaximumLikelihoodModel[L](val models:Seq[Model], labelConvert:Int=>L) {
+  def assignLabel(features:Seq[Int]) = {
+    val weights = models map (_.eval(features))
+    labelConvert(weights.zipWithIndex.maxBy(_._1)._2)
+  }
 }

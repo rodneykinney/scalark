@@ -33,11 +33,7 @@ package object serialization extends DefaultJsonProtocol {
       case l: DecisionTreeLeaf => l.toJson
       case s: DecisionTreeSplit => s.toJson
     }
-//    def read(value: JsValue) = value.asJsObject.getFields("regionId", "value", "leftId", "rightId", "split") match {
-//      case Seq(JsNumber(regionId), JsNumber(leftId), JsNumber(rightId), s: JsObject) => new DecisionTreeSplit(regionId.toInt, leftId.toInt, rightId.toInt, s.convertTo[Split])
-//      case Seq(JsNumber(regionId), JsNumber(value)) => new DecisionTreeLeaf(regionId.toInt, value.toDouble)
-//      case _ => deserializationError("DecisionTreeNode expected")
-//    }
+
     def read(value: JsValue) = value match {
       case v if v.asJsObject.getFields("split").length > 0 => v.convertTo[DecisionTreeSplit]
       case v if v.asJsObject.getFields("value").length > 0 => v.convertTo[DecisionTreeLeaf]
@@ -59,11 +55,9 @@ package object serialization extends DefaultJsonProtocol {
       case tree: DecisionTreeModel => tree.toJson
       case gaussian: GaussianModel => gaussian.toJson
       case add:AdditiveModel => add.toJson
-      case bayes:BayesOptimalBinaryModel => bayes.toJson
       case _ => serializationError("Unknown model type:  " + m)
     }
     def read(value: JsValue) = value match {
-      case v if v.asJsObject.getFields("positiveModel").length > 0 => v.convertTo[BayesOptimalBinaryModel]
       case v if v.asJsObject.getFields("models").length > 0 => v.convertTo[AdditiveModel]
       case v if v.asJsObject.getFields("means").length > 0 => v.convertTo[GaussianModel]
       case v if v.asJsObject.getFields("nodes").length > 0 => v.convertTo[DecisionTreeModel]
@@ -72,6 +66,5 @@ package object serialization extends DefaultJsonProtocol {
   }
 
   implicit val additiveModelFormat = jsonFormat1(AdditiveModel)
-  implicit val bayesOptimalBinaryFormat = jsonFormat2(BayesOptimalBinaryModel)
 
 }

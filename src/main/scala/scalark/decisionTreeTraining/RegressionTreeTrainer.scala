@@ -27,7 +27,7 @@ class RegressionTreeTrainer[T <: Observation with Feature with Label[Double]](
   val rowCount: Int,
   val rowFilter: Int => Boolean = i => true) {
   val partition = new TreePartition(rowCount)
-  private val splitter = new RegressionSplitFinder(config)
+  private val splitter = new RegressionSplitFinder(config.minLeafSize)
 
   private var _model: DecisionTreeModel = {
     val (total, sum) = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + 1, t._2 + fi.label) }

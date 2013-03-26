@@ -25,16 +25,20 @@ object EvalModel {
     val config = new EvalModelConfig()
     if (!config.parse(args))
       System.exit(0)
-    this(config.dataFile, config.modelFile)
+    this(config.dataFile, config.modelFile, new BinaryAccuracy)
   }
 
-  def apply(dataFile: String, modelFile: String) = {
+  def apply[L,T <: Label[L]](dataFile: String, modelFile: String, metric:Metric[L,T])= {
     val rows = new java.io.File(dataFile).readRows.toSeq
-    val models = io.Source.fromFile(modelFile).getLines.map(_.asJson.convertTo[Model]).toList
-    val rowCount = rows.length
-    val cost = new LogLogisticLoss
-    for ((iter, m) <- (1 to models.length).zip(models)) {
-      println("Iteration #%d accuracy = %f".format(iter, rows.count(r => m.eval(r.features) < .5 ^ r.label).toDouble / rowCount))
+    val trees = io.Source.fromFile(modelFile).getLines.map(_.asJson.convertTo[Model]).toList
+    var treesAtIteration = Vector.empty[Model]
+    val accuracy = new BinaryAccuracy
+    val pr = new PrecisionRecall
+    for ((tree, iter) <- trees.zipWithIndex) {
+      treesAtIteration = treesAtIteration :+ tree
+      val model = new AdditiveModel(treesAtIteration)
+      val scoredRows = rows.map(r => r.withScore(model.eval(r.features)))
+      println("Iteration #%d, accuracy = %f, precision/recall = ".format(iter, accuracy.compute(scoredRows), pr.compute(scoredRows)))
     }
   }
 }

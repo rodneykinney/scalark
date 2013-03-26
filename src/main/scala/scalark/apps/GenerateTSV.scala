@@ -30,22 +30,29 @@ object GenerateTSV {
       rowCount = config.rowCount,
       outputFile = config.output,
       modelFile = config.modelFile,
-      format = config.format)
+      labelCreator = config.labelCreator,
+      fileFormat = config.format)
   }
 
-  def apply(nDim: Int, rowCount: Int,
+  def apply[L](nDim: Int, rowCount: Int,
     outputFile: String,
-    modelFile:String,
+    modelFile: String,
     minFeatureValue: Int = 0,
     maxFeatureValue: Int = 1000,
-    format: String = "TSV") = {
+    labelCreator: Int => L,
+    fileFormat: String = "TSV") = {
     val models = io.Source.fromFile(modelFile).getLines().map(_.asJson.convertTo[Model]).toSeq
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue)
-    val rows = synthesizer.generateData(rowCount, new GenerativeModel(models,i => i))
-    format match {
+    val rows = synthesizer.generateData(rowCount, new GenerativeModel(models, labelCreator))
+    fileFormat match {
       case "TSV" => {
-        val format = (1 to rows.head.features.size).map(i => "%d").mkString("\t")
-        rows.map(row => row.rowId + "\t" + 1 + "\t" + row.label + "\t" + format.format(row.features: _*)).writeToFile(outputFile)
+        val featureFormat = List.fill(rows.head.features.size)("%d").mkString("\t")
+        val lineFormat = "%d\t%s\t%s"
+        val header = lineFormat.format("rowId", "label", (0 until rows.head.features.size).map(i => "feature" + i).mkString("\t"))
+        using(new PrintWriter(new FileWriter(outputFile))) { writer =>
+          writer.println(header)
+          for (row <- rows) writer.println(lineFormat.format(row.rowId, row.label, featureFormat.format(row.features: _*)))
+        }
       }
       case "ARFF" => {
         val writer = new java.io.PrintWriter(new java.io.FileWriter(outputFile))
@@ -65,6 +72,7 @@ class GenerateTSVConfig extends CommandLineParameters {
   var nDim: Int = 2
   var rowCount: Int = 100
   var format: String = "TSV"
+  var labelType: String = "binary"
   var modelFile: String = _
 
   def usage = {
@@ -72,7 +80,13 @@ class GenerateTSVConfig extends CommandLineParameters {
       required("output", "Output TSV File") ::
       optional("nDim", "Number of dimensions") ::
       optional("rowCount", "Number of instances") ::
+      optional("labelType", "Boolean | Int") ::
       optional("format", "TSV | ARFF") ::
       Nil
+  }
+
+  def labelCreator = labelType match {
+    case "Boolean" => i: Int => i > 0
+    case "Int" => i: Int => i
   }
 }

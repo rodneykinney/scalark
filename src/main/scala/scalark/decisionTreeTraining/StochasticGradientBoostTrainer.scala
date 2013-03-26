@@ -21,18 +21,16 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
   config: StochasticGradientBoostTrainConfig,
   cost: CostFunction[L, T with Label[L]],
   labelData: Seq[T with Label[L]],
-  columns: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])
-  (implicit scoreDecorator: T with Label[L]=> DecorateWithScoreAndRegion[T with Label[L]]){
+  columns: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) {
 
   require(labelData.validate)
 
   private var trees = Vector.empty[Model]
   private val rootRegion = new TreeRegion(0, 0, labelData.size)
-  private var _model: Model = _
   private val rand = new util.Random(config.randomSeed)
   private val data = for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)
 
-  def model = _model
+  def model = new AdditiveModel(trees)
 
   def train(iterationCallback: () => Any = () => ()) = {
     while (trees.size < config.iterationCount) {
@@ -41,7 +39,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
     }
     model
   }
-  
+
   def trainError = cost.totalCost(data)
 
   private def nextIteration() = {
@@ -49,8 +47,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
       // Initialize with constant value
       val mean = cost.optimalConstant(data)
       data foreach (_.score = mean)
-      _model = new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
-      trees = trees :+ _model
+      trees = trees :+ new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
     } else {
       val currentModel = model
 
@@ -60,11 +57,11 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
       val rowSampler = sampler(sampleSeed, config.rowSampleRate)
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       val gradients = new mutable.ArraySeq[Double](data.size)
-      data.zip(cost.gradient(data)) foreach {t => gradients(t._1.rowId) = t._2}
+      data.zip(cost.gradient(data)) foreach { t => gradients(t._1.rowId) = t._2 }
       val residualData = for (c <- sampledColumns) yield {
         val regressionInstances = (for (row <- c.all(rootRegion)) yield {
-            ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradients(row.rowId))
-          })
+          ObservationLabelFeature(rowId = row.rowId, featureValue = row.featureValue, label = -gradients(row.rowId))
+        })
         new FeatureColumn[Double, ObservationLabelFeature[Double]](regressionInstances, c.columnId)
       }
 
@@ -92,7 +89,6 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
 
       // Add tree to ensemble
       trees = trees :+ deltaModel
-      _model = new AdditiveModel(trees)
     }
   }
 

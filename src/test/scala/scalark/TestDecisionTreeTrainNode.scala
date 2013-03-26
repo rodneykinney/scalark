@@ -73,7 +73,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
 
   test("RegressionSplitFinder") {
     init
-    val splitter = new RegressionSplitFinder(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 100))
+    val splitter = new RegressionSplitFinder(1)
     var parent = partition.root
 
     // Best split is [1,2,2,2,3,4,5,6,8] [20]

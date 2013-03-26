@@ -18,14 +18,14 @@ package scalark.decisionTreeTraining
 /**
  * Finds best threshold at which to split a feature, based on mean-squared error
  */
-class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
+class RegressionSplitFinder(minLeafSize: Int) {
 
   /**
    * Given a column of input data, scan through all possible threshold values and pick the split with the smallest loss
    */
   def findSplitCandidate[T <: Observation with Feature with Label[Double]](column: FeatureColumn[Double, T], node: TreeRegion, rowFilter: Int => Boolean = i => true) = {
     // Statistics of points in the left split
-    var batch = column.batch(node, 0, config.minLeafSize)
+    var batch = column.batch(node, 0, minLeafSize)
     val scLeft = sumAndCount(batch, rowFilter)
     var lCount = scLeft._1
     var lWgt = scLeft._2
@@ -37,7 +37,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
     var rWgt = scRight._2
     var rSum = scRight._3
 
-    if (lCount < config.minLeafSize || rCount < config.minLeafSize)
+    if (lCount < minLeafSize || rCount < minLeafSize)
       None
     else {
 
@@ -53,7 +53,7 @@ class RegressionSplitFinder(config: DecisionTreeTrainConfig) {
 
       // Update loss while we move points from right to left
       var stats = scLeft
-      while (lCount < node.size - config.minLeafSize) {
+      while (lCount < node.size - minLeafSize) {
         batch = column.batch(node, lCount, 1)
         stats = sumAndCount(batch, rowFilter)
         lCount += stats._1

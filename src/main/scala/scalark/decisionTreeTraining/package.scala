@@ -61,15 +61,31 @@ package object decisionTreeTraining {
       })
   }
 
+  trait DecorateWithScore[T] {
+    def withScore(score: Double): T with Score
+  }
+
+  implicit def decorateObservationWithScore[L](row: Observation with Label[L]) = new DecorateWithScore[Observation with Label[L]] {
+    def withScore(score: Double) = ObservationLabelScore(rowId = row.rowId, label = row.label, score = score)
+  }
+
+  implicit def decorateRowWithScore[L](row: Observation with RowOfFeatures with Label[L]) = new DecorateWithScore[Observation with RowOfFeatures with Label[L]] {
+    def withScore(score: Double) = ObservationRowLabelScore(rowId = row.rowId, label = row.label, score = score, features = row.features)
+  }
+
+  implicit def decorateQueryWithScore[L](row: Observation with Query with Label[L]) = new DecorateWithScore[Observation with Query with Label[L]] {
+    def withScore(score: Double) = ObservationLabelQueryScore(rowId = row.rowId, label = row.label, score = score, queryId = row.queryId)
+  }
+
   trait DecorateWithScoreAndRegion[T] {
     def withScoreAndRegion(score: Double, regionId: Int): T with Score with Region
   }
 
-  implicit def decorateObservation[L](row: Observation with Label[L]) = new DecorateWithScoreAndRegion[Observation with Label[L]] {
+  implicit def decorateObservationWithScoreAndRegion[L](row: Observation with Label[L]) = new DecorateWithScoreAndRegion[Observation with Label[L]] {
     def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelScoreRegion(rowId = row.rowId, label = row.label, score = score, regionId = regionId)
   }
 
-  implicit def decorateObservationWithQuery[L](row: Observation with Query with Label[L]) = new DecorateWithScoreAndRegion[Observation with Query with Label[L]] {
+  implicit def decorateQueryWithScoreAndRegion[L](row: Observation with Query with Label[L]) = new DecorateWithScoreAndRegion[Observation with Query with Label[L]] {
     def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelQueryScoreRegion(rowId = row.rowId, label = row.label, score = score, regionId = regionId, queryId = row.queryId)
   }
 
@@ -88,7 +104,7 @@ package object decisionTreeTraining {
     def readRows = {
       for (line <- io.Source.fromFile(file).getLines()) yield {
         val fields = line.split('\t')
-        ObservationRowLabel(rowId = fields(0).toInt, label = fields(2).toBoolean, features = fields.drop(3).map(_.toInt))
+        ObservationRowLabel(rowId = fields(0).toInt, label = fields(1).toBoolean, features = fields.drop(3).map(_.toInt))
       }
     }
   }

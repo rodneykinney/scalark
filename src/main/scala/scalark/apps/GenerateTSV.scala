@@ -28,10 +28,12 @@ object GenerateTSV {
 
     this(nDim = config.nDim,
       rowCount = config.rowCount,
-      outputFile = config.output,
+      outputFile = config.outputFile,
       modelFile = config.modelFile,
       labelCreator = config.labelCreator,
-      fileFormat = config.format)
+      fileFormat = config.format,
+      minFeatureValue = config.minFeatureValue,
+      maxFeatureValue = config.maxFeatureValue)
   }
 
   def apply[L](nDim: Int, rowCount: Int,
@@ -48,7 +50,7 @@ object GenerateTSV {
       case "TSV" => {
         val featureFormat = List.fill(rows.head.features.size)("%d").mkString("\t")
         val lineFormat = "%d\t%s\t%s"
-        val header = lineFormat.format("rowId", "label", (0 until rows.head.features.size).map(i => "feature" + i).mkString("\t"))
+        val header = "rowId\tlabel\t"+(0 until rows.head.features.size).map(i => "feature" + i).mkString("\t")
         using(new PrintWriter(new FileWriter(outputFile))) { writer =>
           writer.println(header)
           for (row <- rows) writer.println(lineFormat.format(row.rowId, row.label, featureFormat.format(row.features: _*)))
@@ -68,19 +70,23 @@ object GenerateTSV {
 }
 
 class GenerateTSVConfig extends CommandLineParameters {
-  var output: String = _
+  var outputFile: String = _
   var nDim: Int = 2
   var rowCount: Int = 100
   var format: String = "TSV"
   var labelType: String = "binary"
   var modelFile: String = _
+  var minFeatureValue: Int = 0
+  var maxFeatureValue:Int = 1000
 
   def usage = {
     required("modelFile", "File containing serialized model used to generate data") ::
-      required("output", "Output TSV File") ::
+      required("outputFile", "Output TSV File") ::
       optional("nDim", "Number of dimensions") ::
       optional("rowCount", "Number of instances") ::
       optional("labelType", "Boolean | Int") ::
+      optional("minFeatureValue", "lower limit of range of feature values") ::
+      optional("maxFeatureValue", "upper limit of range for feature values") ::
       optional("format", "TSV | ARFF") ::
       Nil
   }

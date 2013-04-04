@@ -15,7 +15,7 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-class StochasticGradientBoostTrainConfig(
+case class StochasticGradientBoostTrainConfig(
   val iterationCount: Int,
   val learningRate: Double,
   leafCount: Int,

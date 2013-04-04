@@ -32,10 +32,10 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
 
   def model = new AdditiveModel(trees)
 
-  def train(iterationCallback: () => Any = () => ()) = {
+  def train(iterationCallback: => Any = ()) = {
     while (trees.size < config.iterationCount) {
       nextIteration()
-      iterationCallback()
+      iterationCallback
     }
     model
   }

@@ -15,8 +15,8 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-class DecisionTreeTrainConfig (
+case class DecisionTreeTrainConfig(
   /** Minimum number of examples needed to create a leaf node */
-    val minLeafSize: Int,
+  val minLeafSize: Int,
   /** Number of leaf nodes per tree */
-  val leafCount: Int) {}
+  val leafCount: Int)

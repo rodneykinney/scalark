@@ -25,7 +25,7 @@ package object decisionTreeTraining {
   implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
     def toSortedColumns[LabelType, ColumnType <: Observation](implicit featureSelector: RowType => SelectSingleFeature[LabelType, ColumnType with Feature with Label[LabelType]]) = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = rows.sortBy(_.features(col)).map(_.selectSingleFeature(col))
+        val data = rows.view.sortBy(_.features(col)).map(_.selectSingleFeature(col)).force
         new FeatureColumn[LabelType, ColumnType with Feature with Label[LabelType]](data, col)
       }
     }
@@ -102,9 +102,9 @@ package object decisionTreeTraining {
 
   implicit def FileRowReader(file: java.io.File) = new {
     def readRows = {
-      for (line <- io.Source.fromFile(file).getLines()) yield {
+      for (line <- io.Source.fromFile(file).getLines.drop(1)) yield {
         val fields = line.split('\t')
-        ObservationRowLabel(rowId = fields(0).toInt, label = fields(1).toBoolean, features = fields.drop(3).map(_.toInt))
+        ObservationRowLabel(rowId = fields(0).toInt, label = fields(1).toBoolean, features = fields.drop(2).map(_.toInt))
       }
     }
   }

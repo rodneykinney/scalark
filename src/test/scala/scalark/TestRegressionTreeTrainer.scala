@@ -18,7 +18,10 @@ package scalark
 import scalark.decisionTreeTraining._
 import org.scalatest._
 import scala.util._
+import org.junit.runner._
+import org.scalatest.junit._
 
+@RunWith(classOf[JUnitRunner])
 class TestRegressionTreeTrainer extends FunSuite {
 
   test("train/test") {

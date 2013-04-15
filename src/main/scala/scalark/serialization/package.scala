@@ -42,10 +42,10 @@ package object serialization extends DefaultJsonProtocol {
   }
 
   implicit object decisionTreeModelFormat extends RootJsonFormat[DecisionTreeModel] {
-    def write(m: DecisionTreeModel) = m.nodes.toList.toJson
+    def write(m: DecisionTreeModel) = JsObject("nodes" -> m.nodes.toList.toJson)
 
-    def read(value: JsValue) = value match {
-      case JsArray(nodes) => new DecisionTreeModel(nodes.map(_.convertTo[DecisionTreeNode]))
+    def read(value: JsValue) = value.asJsObject.getFields("nodes") match {
+      case Seq(JsArray(nodes)) => new DecisionTreeModel(nodes.map(_.convertTo[DecisionTreeNode]))
       case _ => deserializationError("DecisionTreeModel expected")
     }
   }
@@ -54,7 +54,7 @@ package object serialization extends DefaultJsonProtocol {
     def write(m: Model) = m match {
       case tree: DecisionTreeModel => tree.toJson
       case gaussian: GaussianModel => gaussian.toJson
-      case add:AdditiveModel => add.toJson
+      case add: AdditiveModel => add.toJson
       case _ => serializationError("Unknown model type:  " + m)
     }
     def read(value: JsValue) = value match {

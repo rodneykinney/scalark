@@ -33,7 +33,8 @@ object GenerateTSV {
       labelCreator = config.labelCreator,
       fileFormat = config.format,
       minFeatureValue = config.minFeatureValue,
-      maxFeatureValue = config.maxFeatureValue)
+      maxFeatureValue = config.maxFeatureValue,
+      seed = config.seed)
   }
 
   def apply[L](nDim: Int, rowCount: Int,
@@ -41,16 +42,17 @@ object GenerateTSV {
     modelFile: String,
     minFeatureValue: Int = 0,
     maxFeatureValue: Int = 1000,
+    seed: Int = 117,
     labelCreator: Int => L,
     fileFormat: String = "TSV") = {
     val models = io.Source.fromFile(modelFile).getLines().map(_.asJson.convertTo[Model]).toSeq
-    val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue)
+    val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed = seed)
     val rows = synthesizer.generateData(rowCount, new GenerativeModel(models, labelCreator))
     fileFormat match {
       case "TSV" => {
         val featureFormat = List.fill(rows.head.features.size)("%d").mkString("\t")
         val lineFormat = "%d\t%s\t%s"
-        val header = "rowId\tlabel\t"+(0 until rows.head.features.size).map(i => "feature" + i).mkString("\t")
+        val header = "rowId\tlabel\t" + (0 until rows.head.features.size).map(i => "feature" + i).mkString("\t")
         using(new PrintWriter(new FileWriter(outputFile))) { writer =>
           writer.println(header)
           for (row <- rows) writer.println(lineFormat.format(row.rowId, row.label, featureFormat.format(row.features: _*)))
@@ -77,7 +79,8 @@ class GenerateTSVConfig extends CommandLineParameters {
   var labelType: String = "binary"
   var modelFile: String = _
   var minFeatureValue: Int = 0
-  var maxFeatureValue:Int = 1000
+  var maxFeatureValue: Int = 1000
+  var seed: Int = 117
 
   def usage = {
     required("modelFile", "File containing serialized model used to generate data") ::
@@ -87,6 +90,7 @@ class GenerateTSVConfig extends CommandLineParameters {
       optional("labelType", "Boolean | Int") ::
       optional("minFeatureValue", "lower limit of range of feature values") ::
       optional("maxFeatureValue", "upper limit of range for feature values") ::
+      optional("seed", "random seed") ::
       optional("format", "TSV | ARFF") ::
       Nil
   }

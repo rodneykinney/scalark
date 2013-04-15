@@ -19,7 +19,10 @@ import scalark.decisionTreeTraining._
 import org.scalatest._
 import scala.util._
 import scala.collection._
+import org.junit.runner._
+import org.scalatest.junit._
 
+@RunWith(classOf[JUnitRunner])
 class TestRanking extends FunSuite with BeforeAndAfter {
   before {
     breeze.util.logging.ConfiguredLogging.configuration = breeze.config.Configuration.fromMap(immutable.Map(
@@ -70,7 +73,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     val cost = new RankingCost()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, columns)
     var models = Vector.empty[Model]
-    trainer.train(() => { models = models :+ trainer.model })
+    trainer.train(models = models :+ trainer.model)
     // Cost should decrease monotonically
     val costs = for (m <- models) yield {
       val scoredRows = for (row <- rows) yield row.withScoreAndRegion(score = m.eval(row.features), regionId = 0)
@@ -97,7 +100,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     val cost = new RankingCost()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, columns)
     var models = Vector.empty[Model]
-    trainer.train(() => { models = models :+ trainer.model })
+    trainer.train(models = models :+ trainer.model)
     // Cost should decrease monotonically
     val costs = for (m <- models) yield {
       val scoredRows = for (row <- rows) yield row.withScoreAndRegion(score = m.eval(row.features), regionId = 0)

@@ -40,7 +40,7 @@ trait CommandLineParameters {
           true
       } catch {
         case e: Exception => {
-          println(e.getMessage)
+          e.printStackTrace
           printUsage
           false
         }
@@ -72,7 +72,7 @@ trait CommandLineParameters {
             case _ => throw new ParseException("Missing value for parameter: " + paramName)
           }
           case t if t == classOf[Double] => tail match {
-            case s :: next if !s.startsWith("-") => { field.setDouble(this, tail.head.toInt); paramName :: parseArgList(next) }
+            case s :: next if !s.startsWith("-") => { field.setDouble(this, tail.head.toDouble); paramName :: parseArgList(next) }
             case _ => throw new ParseException("Missing value for parameter: " + paramName)
           }
         }
@@ -91,6 +91,20 @@ trait CommandLineParameters {
       case _ if p.required => println("  -" + p.name + " <value> : " + p.desc)
       case _ => println("  [-" + p.name + " <value>] : " + p.desc)
     }
+  }
+  
+  override def toString = {
+    val sb = new StringBuilder()
+    sb.append(CommandLineParameters.this.getClass.getName().substring(CommandLineParameters.this.getClass.getName.lastIndexOf('.')+1))
+    sb.append("(")
+    val params = for (p <- this.usage) yield {
+      val field = CommandLineParameters.this.getClass.getDeclaredField(p.name)
+      field.setAccessible(true)
+      p.name+"="+field.get(CommandLineParameters.this)
+    }
+    sb.append(params.mkString(","))
+    sb.append(")")
+    sb.toString
   }
 }
 

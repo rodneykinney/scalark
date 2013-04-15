@@ -16,9 +16,13 @@ limitations under the License.
 package scalark
 
 import scalark.decisionTreeTraining._
+
 import org.scalatest._
 import scala.collection.immutable._
+import org.junit.runner._
+import org.scalatest.junit._
 
+@RunWith(classOf[JUnitRunner])
 class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   val size = 10
   val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)

@@ -20,8 +20,7 @@ import scalark.serialization._
 
 import spray.json._
 
-object TrainModel  {
-  val logger = new ConfiguredLogging {}
+object TrainModel extends ConfiguredLogging {
 
   def main(args: Array[String]) {
     val config = new TrainModelConfig
@@ -37,20 +36,20 @@ object TrainModel  {
   }
 
   def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String) {
-    logger.log.info("Reading data from "+input)
+    log.info("Reading data from "+input)
     val rows = new java.io.File(input).readRows.toList
     val columns = rows.toSortedColumns
     val labels = rows.map(r => ObservationLabel(r.rowId, r.label)).toList
-    logger.log.info("Read "+labels.size+" rows")
-    logger.log.info("Training configuration: "+trainConfig)
+    log.info("Read "+labels.size+" rows")
+    log.info("Training configuration: "+trainConfig)
     var iter = 0
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)
     val start = new java.util.Date()
-    val trees = trainer.train({logger.log.info("Iteration #"+iter+", train error = "+trainer.trainError) ; iter += 1})
+    val trees = trainer.train({log.info("Iteration #"+iter+", train error = "+trainer.trainError) ; iter += 1})
     val end = new java.util.Date()
-    logger.log.info("Training complete in "+(end.getTime-start.getTime)/1000 + " seconds")
+    log.info("Training complete in "+(end.getTime-start.getTime).toDouble/1000 + " seconds")
     val treesJson = trees.toJson
-    logger.log.info("Saving model to "+output)
+    log.info("Saving model to "+output)
     using (new java.io.PrintWriter(new java.io.File(output))) {
       p => p.println(treesJson)
     }

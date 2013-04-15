@@ -28,17 +28,28 @@ object EvalModel {
     this(config.dataFile, config.modelFile, new BinaryAccuracy)
   }
 
-  def apply[L,T <: Label[L]](dataFile: String, modelFile: String, metric:Metric[L,T])= {
+  def apply[L, T <: Label[L]](dataFile: String, modelFile: String, metric: Metric[L, T]) = {
     val rows = new java.io.File(dataFile).readRows.toSeq
-    val trees = io.Source.fromFile(modelFile).getLines.map(_.asJson.convertTo[Model]).toList
-    var treesAtIteration = Vector.empty[Model]
+    val models = io.Source.fromFile(modelFile).getLines.toList.map(_.asJson.convertTo[Model])
     val accuracy = new BinaryAccuracy
     val pr = new PrecisionRecall
-    for ((tree, iter) <- trees.zipWithIndex) {
-      treesAtIteration = treesAtIteration :+ tree
-      val model = new AdditiveModel(treesAtIteration)
-      val scoredRows = rows.map(r => r.withScore(model.eval(r.features)))
-      println("Iteration #%d, accuracy = %f, precision/recall = ".format(iter, accuracy.compute(scoredRows), pr.compute(scoredRows)))
+    models match {
+      case (a: AdditiveModel) :: Nil => {
+        var cumulative = new AdditiveModel(Vector.empty[Model])
+        for ((m, iter) <- a.models.zipWithIndex) {
+          cumulative = new AdditiveModel(cumulative.models :+ m)
+          val scoredRows = rows.map(r => r.withScore(cumulative.eval(r.features)))
+          val a = accuracy.compute(scoredRows)
+          val (p, r) = pr.compute(scoredRows)
+          println("Iteration %d, Accuracy = %f, precision = %f, recall = %f".format(iter, a, p, r))
+        }
+      }
+      case _ => {
+        val scoredRows = rows.map(r => r.withScore(models(1).eval(r.features) - models(0).eval(r.features)))
+        val a = accuracy.compute(scoredRows)
+        val (p, r) = pr.compute(scoredRows)
+        println("Accuracy = %f, precision = %f, recall = %f".format(a, p, r))
+      }
     }
   }
 }

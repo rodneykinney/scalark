@@ -13,7 +13,7 @@ class BinaryAccuracy extends Metric[Boolean, Label[Boolean]] {
       rowCount += 1
       if (row.label ^ row.score > 0) errorCount += 1
     }
-    errorCount.toDouble / rowCount
+    1 - errorCount.toDouble / rowCount
   }
 }
 
@@ -29,11 +29,4 @@ class PrecisionRecall extends Metric[Boolean, Label[Boolean]] {
     val recall = confusion(0).toDouble / (confusion(0) + confusion(1))
     (precision, recall)
   }
-}
-
-object foo {
-  val m = new BinaryAccuracy
-  val mm:Metric[Boolean,Label[Boolean]] = m
-  val value = mm.compute(Vector.empty[Label[Boolean] with Score])
-  //val mm; Metric[Boolean, Label[Boolean]] = m
 }

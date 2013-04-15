@@ -17,7 +17,10 @@ package scalark
 
 import scalark.decisionTreeTraining._
 import org.scalatest._
+import org.junit.runner._
+import org.scalatest.junit._
 
+@RunWith(classOf[JUnitRunner])
 class TestStochasticGradientBoostTrainer extends FunSuite {
   test("SGB - toy 1d") {
     val rows = Vector(
@@ -32,7 +35,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val tol = 1.0e-8
 
     var models = Vector.empty[Model]
-    trainer.train(() => { models = models :+ trainer.model })
+    trainer.train(models = models :+ trainer.model)
     // Mean-value model is log(3/2)
     rows.foreach(r => assertWithin(models(0).eval(r.features), math.log(1.5), tol))
 
@@ -62,7 +65,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     var models = Vector.empty[Model]
-    trainer.train(() => { models = models :+ trainer.model })
+    trainer.train(models = models :+ trainer.model)
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
     val costs = for (m <- models) yield {
       for (row <- rows) { row.score = m.eval(row.features) }
@@ -80,7 +83,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     var models = Vector.empty[Model]
-    trainer.train(() => { models = models :+ trainer.model })
+    trainer.train(models = models :+ trainer.model)
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
     val costs = for (m <- models) yield {
       for (row <- rows) { row.score = m.eval(row.features) }

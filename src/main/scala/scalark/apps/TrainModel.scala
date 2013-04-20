@@ -45,7 +45,7 @@ object TrainModel extends ConfiguredLogging {
     var iter = 0
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)
     val start = new java.util.Date()
-    val trees = trainer.train({log.info("Iteration #"+iter+", train error = "+trainer.trainError) ; iter += 1})
+    val trees = trainer.train({log.info("Iteration #"+iter) ; iter += 1})
     val end = new java.util.Date()
     log.info("Training complete in "+(end.getTime-start.getTime).toDouble/1000 + " seconds")
     val treesJson = trees.toJson

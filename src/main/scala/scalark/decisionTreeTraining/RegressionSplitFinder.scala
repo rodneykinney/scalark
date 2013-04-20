@@ -83,6 +83,6 @@ class RegressionSplitFinder(minLeafSize: Int) {
       sum += f.label
       lastfeatureValue = f.featureValue
     }
-    new Tuple4(count, wgt, sum, lastfeatureValue)
+    (count, wgt, sum, lastfeatureValue)
   }
 }

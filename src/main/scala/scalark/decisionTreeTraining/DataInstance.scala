@@ -23,10 +23,6 @@ trait Label[LabelType] {
   def label: LabelType
 }
 
-trait Weight {
-  def weight: Double
-}
-
 trait Feature {
   def featureValue: Int
 }

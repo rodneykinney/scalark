@@ -53,8 +53,8 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
 
       // Build training data to fit regression tree to gradient of the cost function
       val sampleSeed = rand.nextInt
-      val columnSampler = sampler(sampleSeed, config.featureSampleRate)
-      val rowSampler = sampler(sampleSeed, config.rowSampleRate)
+      val columnSampler = sampler(columns.size, config.featureSampleRate, rand)
+      val rowSampler = sampler(columns.head.size, config.rowSampleRate, rand)
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       val gradients = new mutable.ArraySeq[Double](data.size)
       data.zip(cost.gradient(data)) foreach { t => gradients(t._1.rowId) = t._2 }

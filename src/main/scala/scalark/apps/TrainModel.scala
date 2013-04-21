@@ -30,7 +30,8 @@ object TrainModel extends ConfiguredLogging {
     val sgbConfig = new StochasticGradientBoostTrainConfig(iterationCount = config.numIterations,
       learningRate = config.learningRate,
       leafCount = config.leafCount,
-      minLeafSize = config.minLeafSize)
+      minLeafSize = config.minLeafSize,
+      rowSampleRate = config.rowSampleRate)
 
     this(sgbConfig, config.train, config.output)
   }

@@ -25,35 +25,40 @@ object EvalModel {
     val config = new EvalModelConfig()
     if (!config.parse(args))
       System.exit(0)
-    this(config.dataFile, config.modelFile, config.outputWriter, new BinaryAccuracy)
+    this(config.dataFile, config.modelFile, config.outputWriter)
   }
 
-  def apply[L, T <: Label[L], W <: { def println(s: String); def close() }](dataFile: String, modelFile: String, outputWriter: W, metric: Metric[L, T]) = {
-    val rows = new java.io.File(dataFile).readRows.toSeq
+  def apply[L, T <: Label[L], W <: { def println(s: String); def close() }](dataFile: String, modelFile: String, outputWriter: W) = {
+    val rows = new java.io.File(dataFile).readRows.toList
     val models = io.Source.fromFile(modelFile).getLines.toList.map(_.asJson.convertTo[Model])
-    val accuracy = new BinaryAccuracy
-    val pr = new PrecisionRecall
-    models match {
-      case (a: AdditiveModel) :: Nil => {
-        outputWriter.println("Iteration\tAccuracy\tPrecision\tRecall")
-        var cumulative = new AdditiveModel(Vector.empty[Model])
-        for ((m, iter) <- a.models.zipWithIndex) {
-          cumulative = new AdditiveModel(cumulative.models :+ m)
-          val scoredRows = rows.map(r => r.withScore(cumulative.eval(r.features)))
-          val a = accuracy.compute(scoredRows)
-          val (p, r) = pr.compute(scoredRows)
-          outputWriter.println("%d\t%f\t%f\t%f".format(iter, a, p, r))
-        }
-      }
-      case _ => {
-        outputWriter.println("Accuracy\tPrecision\tRecall")
-        val scoredRows = rows.map(r => r.withScore(models(1).eval(r.features) - models(0).eval(r.features)))
-        val a = accuracy.compute(scoredRows)
-        val (p, r) = pr.compute(scoredRows)
-        outputWriter.println("%f\t%f\t%f".format(a, p, r))
-      }
+    val eval = new EvalModel(models, rows)
+    val accuracy = eval(BinaryAccuracy)
+    val pr = eval(PrecisionRecall)
+    outputWriter.println("Iteration\tAccuracy\tPrecision\tRecall")
+    for ((((p, r), a), iter) <- pr.zip(accuracy).zipWithIndex) {
+      outputWriter.println("%d\t%f\t%f\t%f".format(iter, a, p, r))
     }
     outputWriter.close()
+  }
+}
+
+class EvalModel[T <: Observation with Label[Boolean] with RowOfFeatures](models: List[Model], rows: Seq[T]) {
+  val scoredRowSets = models match {
+    case (a: AdditiveModel) :: Nil => {
+      var cumulative = new AdditiveModel(Vector.empty[Model])
+      for (m <- a.models) yield {
+        cumulative = new AdditiveModel(cumulative.models :+ m)
+        val scoredRows = rows.map(r => r.withScore(cumulative.eval(r.features)))
+        scoredRows
+      }
+    }
+    case _ => {
+      List(rows.map(r => r.withScore(models(1).eval(r.features) - models(0).eval(r.features))))
+    }
+  }
+
+  def apply[MetricResult](metric:Metric[Boolean, Label[Boolean], MetricResult]) = {
+    for (rowSet <- scoredRowSets) yield metric.compute(rowSet)
   }
 }
 

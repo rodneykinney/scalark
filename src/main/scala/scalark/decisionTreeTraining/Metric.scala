@@ -1,12 +1,10 @@
 package scalark.decisionTreeTraining
 
-trait Metric[L, T <: Label[L]] {
-  type ResultType
-  def compute[T1 <: T with Score](rows: Seq[T1]): ResultType
+trait Metric[L, T <: Label[L], MetricResult] {
+  def compute[T1 <: T with Score](rows: Seq[T1]): MetricResult
 }
 
-class BinaryAccuracy extends Metric[Boolean, Label[Boolean]] {
-  type ResultType = Double
+object BinaryAccuracy extends Metric[Boolean, Label[Boolean], Double] {
   def compute[T <: Label[Boolean] with Score](rows: Seq[T]) = {
     var rowCount, errorCount = 0
     for (row <- rows) {
@@ -17,8 +15,7 @@ class BinaryAccuracy extends Metric[Boolean, Label[Boolean]] {
   }
 }
 
-class PrecisionRecall extends Metric[Boolean, Label[Boolean]] {
-  type ResultType = Tuple2[Double, Double]
+object PrecisionRecall extends Metric[Boolean, Label[Boolean], Tuple2[Double,Double]] {
   def compute[T <: Label[Boolean] with Score](rows: Seq[T]) = {
     val confusion = Array(0, 0, 0, 0)
     for (row <- rows) {

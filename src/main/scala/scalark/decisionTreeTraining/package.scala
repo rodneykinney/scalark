@@ -112,8 +112,14 @@ package object decisionTreeTraining {
   def using[A, B <: { def close(): Unit }](closeable: B)(f: B => A): A =
     try { f(closeable) } finally { closeable.close() }
 
-  def sampler(seed: Int, sampleRate: Double) = sampleRate match {
+  def sampler(size: Int, sampleRate: Double, rand: util.Random) = sampleRate match {
     case 1.0 => i: Int => true
-    case _ => i: Int => new util.Random(java.nio.ByteBuffer.allocate(8).putInt(seed).putInt(i).getLong(0)).nextDouble < sampleRate
+    case _ => {
+      val keepIds = new collection.mutable.BitSet(size)
+      for (i <- (0 until size)) {
+        if (rand.nextDouble < sampleRate) keepIds += i
+      }
+      keepIds
+    }
   }
 }

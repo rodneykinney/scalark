@@ -17,6 +17,7 @@ package scalark.decisionTreeTraining
 
 trait Observation {
   def rowId: Int
+  var weight: Double
 }
 
 trait Label[LabelType] {
@@ -39,12 +40,12 @@ trait Region {
   var regionId: Int
 }
 
-case class ObservationLabel[LabelType](val rowId: Int, val label: LabelType) extends Observation with Label[LabelType]
-case class ObservationLabelScore[LabelType](val rowId: Int, val label: LabelType, var score: Double) extends Observation with Label[LabelType] with Score
-case class ObservationLabelScoreRegion[LabelType](val rowId: Int, val label: LabelType, var score: Double, var regionId: Int) extends Observation with Label[LabelType] with Score with Region
-case class ObservationLabelFeature[LabelType](val rowId: Int, val label: LabelType, val featureValue: Int) extends Observation with Label[LabelType] with Feature 
-case class ObservationLabelFeatureScore[LabelType](val rowId: Int, val label: LabelType, val featureValue: Int, var score: Double) extends Observation with Label[LabelType] with Feature with Score 
-case class ObservationLabelFeatureScoreRegion[LabelType](val rowId: Int, val label: LabelType, val featureValue: Int, var score: Double, var regionId: Int) extends Observation with Label[LabelType] with Feature with Score with Region
-case class ObservationRowLabel[LabelType](val rowId: Int, val features: IndexedSeq[Int], val label: LabelType) extends Observation with RowOfFeatures with Label[LabelType]
-case class ObservationRowLabelScore[LabelType](val rowId: Int, val features: IndexedSeq[Int], val label: LabelType, var score: Double) extends Observation with RowOfFeatures with Label[LabelType] with Score
+case class ObservationLabel[LabelType](val rowId: Int, var weight: Double, val label: LabelType) extends Observation with Label[LabelType]
+case class ObservationLabelScore[LabelType](val rowId: Int, var weight: Double, val label: LabelType, var score: Double) extends Observation with Label[LabelType] with Score
+case class ObservationLabelScoreRegion[LabelType](val rowId: Int, var weight: Double, val label: LabelType, var score: Double, var regionId: Int) extends Observation with Label[LabelType] with Score with Region
+case class ObservationLabelFeature[LabelType](val rowId: Int, var weight: Double, val label: LabelType, val featureValue: Int) extends Observation with Label[LabelType] with Feature
+case class ObservationLabelFeatureScore[LabelType](val rowId: Int, var weight: Double, val label: LabelType, val featureValue: Int, var score: Double) extends Observation with Label[LabelType] with Feature with Score
+case class ObservationLabelFeatureScoreRegion[LabelType](val rowId: Int, var weight: Double, val label: LabelType, val featureValue: Int, var score: Double, var regionId: Int) extends Observation with Label[LabelType] with Feature with Score with Region
+case class ObservationRowLabel[LabelType](val rowId: Int, var weight: Double, val features: IndexedSeq[Int], val label: LabelType) extends Observation with RowOfFeatures with Label[LabelType]
+case class ObservationRowLabelScore[LabelType](val rowId: Int, var weight: Double, val features: IndexedSeq[Int], val label: LabelType, var score: Double) extends Observation with RowOfFeatures with Label[LabelType] with Score
 

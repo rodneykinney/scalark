@@ -36,7 +36,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   }
 
   def init = {
-    rows = (0 until size).map(i => ObservationRowLabel(rowId = i, features = Vector(features(i)), label = features(i).toDouble))
+    rows = (0 until size).map(i => ObservationRowLabel(rowId = i, weight=1.0, features = Vector(features(i)), label = features(i).toDouble))
     column = rows.toSortedColumns.head
   }
 

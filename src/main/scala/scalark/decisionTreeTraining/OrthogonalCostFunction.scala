@@ -18,7 +18,7 @@ import scala.collection._
 /**
  * An Orthogonal cost function is one in which the derivative with respect to f_i depends only on f_i
  */
-abstract class OrthogonalCostFunction[L, T <: Label[L]] extends CostFunction[L, T] {
+abstract class OrthogonalCostFunction[L, T <: Observation with Label[L]] extends CostFunction[L, T] {
 
   /** Value of the cost function for a single point */
   def cost[T1 <: T with Score](x: T1): Double
@@ -31,7 +31,7 @@ abstract class OrthogonalCostFunction[L, T <: Label[L]] extends CostFunction[L, 
 
   def gradient[T1 <: T with Score](data: Seq[T1]) = {
     for (l <- data) yield {
-      derivative(l)
+      l.weight * derivative(l)
     }
   }
 
@@ -39,10 +39,10 @@ abstract class OrthogonalCostFunction[L, T <: Label[L]] extends CostFunction[L, 
   def optimalDelta[T1 <: T with Score with Region](data: Seq[T1]) = {
     val regions = data.groupBy(row => row.regionId)
     (for ((regionId, regionData) <- regions) yield {
-      val delta = -regionData.map(derivative(_)).sum / regionData.map(secondDerivative(_)).sum
+      val delta = -regionData.map(l => l.weight * derivative(l)).sum / regionData.map(l => l.weight * secondDerivative(l)).sum
       (regionId, delta)
     }).toMap
   }
 
-  def totalCost[T1 <: T with Score](labels: Seq[T1]) = labels.map(cost(_)).sum
+  def totalCost[T1 <: T with Score](labels: Seq[T1]) = labels.map(l => l.weight * cost(l)).sum
 }

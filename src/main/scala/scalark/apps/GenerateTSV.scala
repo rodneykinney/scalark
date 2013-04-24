@@ -34,7 +34,8 @@ object GenerateTSV {
       fileFormat = config.format,
       minFeatureValue = config.minFeatureValue,
       maxFeatureValue = config.maxFeatureValue,
-      seed = config.seed)
+      seed = config.seed,
+      predictability = config.predictability)
   }
 
   def apply[L](nDim: Int, rowCount: Int,
@@ -44,10 +45,21 @@ object GenerateTSV {
     maxFeatureValue: Int = 1000,
     seed: Int = 117,
     labelCreator: Int => L,
-    fileFormat: String = "TSV") = {
+    fileFormat: String = "TSV",
+    predictability: Double = 0.0) = {
     val models = io.Source.fromFile(modelFile).getLines().map(_.asJson.convertTo[Model]).toSeq
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed = seed)
-    val rows = synthesizer.generateData(rowCount, new GenerativeModel(models, labelCreator))
+    val genModel = new GenerativeModel(models, labelCreator)
+    val optimalModel = new MaximumLikelihoodModel(models, labelCreator)
+    val labelGenerator = (features: IndexedSeq[Int], rand:util.Random) => {
+      if (rand.nextDouble < predictability) {
+        optimalModel.assignLabel(features)
+      }
+      else {
+        genModel.assignLabel(features, rand)
+      }
+    }
+    val rows = synthesizer.generateData(rowCount, labelGenerator)
     fileFormat match {
       case "TSV" => {
         val featureFormat = List.fill(rows.head.features.size)("%d").mkString("\t")
@@ -81,6 +93,7 @@ class GenerateTSVConfig extends CommandLineParameters {
   var minFeatureValue: Int = 0
   var maxFeatureValue: Int = 1000
   var seed: Int = 117
+  var predictability: Double = 0.0
 
   def usage = {
     required("modelFile", "File containing serialized model used to generate data") ::
@@ -91,6 +104,7 @@ class GenerateTSVConfig extends CommandLineParameters {
       optional("minFeatureValue", "lower limit of range of feature values") ::
       optional("maxFeatureValue", "upper limit of range for feature values") ::
       optional("seed", "random seed") ::
+      optional("predictability","Probability of assigning label via maximum likelihood") ::
       optional("format", "TSV | ARFF") ::
       Nil
   }

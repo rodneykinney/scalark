@@ -31,7 +31,8 @@ object TrainModel extends ConfiguredLogging {
       learningRate = config.learningRate,
       leafCount = config.leafCount,
       minLeafSize = config.minLeafSize,
-      rowSampleRate = config.rowSampleRate)
+      rowSampleRate = config.rowSampleRate,
+      sampleRowsWithReplacement = config.withReplacement)
 
     this(sgbConfig, config.train, config.output)
   }
@@ -40,7 +41,7 @@ object TrainModel extends ConfiguredLogging {
     log.info("Reading data from "+input)
     val rows = new java.io.File(input).readRows.toList
     val columns = rows.toSortedColumns
-    val labels = rows.map(r => ObservationLabel(r.rowId, r.label)).toList
+    val labels = rows.map(r => ObservationLabel(r.rowId, 1.0, r.label)).toList
     log.info("Read "+labels.size+" rows")
     log.info("Training configuration: "+trainConfig)
     var iter = 0
@@ -66,6 +67,7 @@ class TrainModelConfig extends CommandLineParameters {
   var minLeafSize = 20
   var rowSampleRate = 1.0
   var featureSampleRate = 1.0
+  var withReplacement = false
 
   def usage = {
     required("train", "In TSV file to use for training") ::
@@ -75,6 +77,7 @@ class TrainModelConfig extends CommandLineParameters {
       optional("leafCount", "Number of leaf nodes per tree") ::
       optional("minLeafSize", "Minimum number of instances per leaf node") ::
       optional("rowSampleRate", "Number of rows to sample at each iteration") ::
+      optional("withReplacement","Sample rows with replacement") ::
       optional("featureSampleRate", "Number of features to sample at each iteration") ::
       Nil
   }

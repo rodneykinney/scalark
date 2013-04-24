@@ -20,6 +20,7 @@ case class StochasticGradientBoostTrainConfig(
   val learningRate: Double,
   leafCount: Int,
   minLeafSize: Int,
+  val sampleRowsWithReplacement: Boolean = false,
   val rowSampleRate: Double = 1.0,
   val featureSampleRate: Double = 1.0,
   val randomSeed: Int = 117) {

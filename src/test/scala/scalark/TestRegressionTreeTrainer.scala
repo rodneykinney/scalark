@@ -47,10 +47,10 @@ class TestRegressionTreeTrainer extends FunSuite {
   }
 
   test("2-d linear") {
-    var rows = Vector(ObservationRowLabel(0, Array(0, 0), 0.))
-    rows = rows :+ ObservationRowLabel(1, Array(0, 1), 1.)
-    rows = rows :+ ObservationRowLabel(2, Array(1, 0), 2.)
-    rows = rows :+ ObservationRowLabel(3, Array(1, 1), 3.)
+    var rows = Vector(ObservationRowLabel(0, 1.0, Array(0, 0), 0.))
+    rows = rows :+ ObservationRowLabel(1, 1.0, Array(0, 1), 1.)
+    rows = rows :+ ObservationRowLabel(2, 1.0, Array(1, 0), 2.)
+    rows = rows :+ ObservationRowLabel(3, 1.0, Array(1, 1), 3.)
 
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 4)
     testTrainer(config, rows)

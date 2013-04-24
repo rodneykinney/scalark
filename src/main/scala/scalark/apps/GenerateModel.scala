@@ -51,7 +51,7 @@ class GenerateModelConfig extends CommandLineParameters {
   val spikiness: Double = 2.5
 
   def usage = {
-    required("output", "Output TSV File") ::
+    required("output", "Output File containing model in JSON format") ::
       optional("nDim", "Number of dimensions") ::
       optional("nClasses", "Number of classes") ::
       optional("nModesPerClass", "Number of peaks in single-class distribution") ::

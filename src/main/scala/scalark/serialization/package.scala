@@ -30,7 +30,7 @@ package object serialization extends DefaultJsonProtocol {
 
   implicit object decisionTreeNodeFormat extends RootJsonFormat[DecisionTreeNode] {
     def write(n: DecisionTreeNode) = n match {
-      case l: DecisionTreeLeaf => l.toJson
+      case l: DecisionTreeLeaf => l.toJson 
       case s: DecisionTreeSplit => s.toJson
     }
 

@@ -32,11 +32,11 @@ class TestRanking extends FunSuite with BeforeAndAfter {
   test("TotalCost") {
     val c = new RankingCost()
 
-    val rows = List(ObservationLabelQueryScore(rowId = 0, label = 0, queryId = 0, score = 0.0),
-      ObservationLabelQueryScore(rowId = 1, label = 0, queryId = 0, score = 0.0),
-      ObservationLabelQueryScore(rowId = 2, label = 1, queryId = 0, score = 0.0),
-      ObservationLabelQueryScore(rowId = 3, label = 0, queryId = 1, score = 0.0),
-      ObservationLabelQueryScore(rowId = 4, label = 1, queryId = 1, score = 0.0))
+    val rows = List(ObservationLabelQueryScore(rowId = 0, weight=1.0, label = 0, queryId = 0, score = 0.0),
+      ObservationLabelQueryScore(rowId = 1, weight=1.0, label = 0, queryId = 0, score = 0.0),
+      ObservationLabelQueryScore(rowId = 2, weight=1.0, label = 1, queryId = 0, score = 0.0),
+      ObservationLabelQueryScore(rowId = 3, weight=1.0, label = 0, queryId = 1, score = 0.0),
+      ObservationLabelQueryScore(rowId = 4, weight=1.0, label = 1, queryId = 1, score = 0.0))
 
     for (row <- rows) row.score = row.label
     assert(math.abs(c.totalCost(rows) - 3 * math.log(1 + math.exp(-1))) < 1.0e-9)
@@ -46,11 +46,11 @@ class TestRanking extends FunSuite with BeforeAndAfter {
   }
 
   test("Optimal Delta") {
-    val rows = List(new { val rowId: Int = 0; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region,
-      new { val rowId: Int = 1; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region,
-      new { val rowId: Int = 2; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region,
-      new { val rowId: Int = 3; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region,
-      new { val rowId: Int = 4; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region)
+    val rows = List(new { val rowId: Int = 0; var weight: Double = 1.0; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 1; var weight: Double = 1.0; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 2; var weight: Double = 1.0; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 3; var weight: Double = 1.0; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region,
+      new { val rowId: Int = 4; var weight: Double = 1.0; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region)
 
     val costs = Range(1, 6).map(new RankingCost(_))
     val x = costs.head.totalCost(rows)
@@ -63,11 +63,11 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     }
   }
   test("Toy 1d") {
-    val rows = List(ObservationLabelRowQuery(rowId = 0, queryId = 0, label = 0, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 1, queryId = 0, label = 0, features = Vector(1)),
-      ObservationLabelRowQuery(rowId = 2, queryId = 0, label = 1, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 3, queryId = 0, label = 1, features = Vector(1)),
-      ObservationLabelRowQuery(rowId = 4, queryId = 0, label = 1, features = Vector(1)))
+    val rows = List(ObservationLabelRowQuery(rowId = 0, weight=1.0, queryId = 0, label = 0, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 1, weight=1.0, queryId = 0, label = 0, features = Vector(1)),
+      ObservationLabelRowQuery(rowId = 2, weight=1.0, queryId = 0, label = 1, features = Vector(0)),
+      ObservationLabelRowQuery(rowId = 3, weight=1.0, queryId = 0, label = 1, features = Vector(1)),
+      ObservationLabelRowQuery(rowId = 4, weight=1.0, queryId = 0, label = 1, features = Vector(1)))
     val columns = rows.toSortedColumns
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()

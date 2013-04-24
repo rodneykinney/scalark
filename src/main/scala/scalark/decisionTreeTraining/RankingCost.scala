@@ -19,7 +19,7 @@ import scala.collection._
 import breeze.optimize._
 import breeze.linalg._
 /**
- * Cost function for ranking.  Cost is a sum over pairs of documents with unequal labels.  Each term is log-logistic function of the different of the two scores
+ * Cost function for ranking.  Cost is a sum over pairs of documents with unequal labels.  Each term is log-logistic function of the difference between the two scores
  * Important:  This implementation assumes that input data is in a canonical order, sorted first by query-id and then by label
  */
 class RankingCost(maxIterations: Int = 2, memory: Int = 2) extends CostFunction[Int, Observation with Label[Int] with Query] {
@@ -49,7 +49,7 @@ class RankingCost(maxIterations: Int = 2, memory: Int = 2) extends CostFunction[
     val regionCount = data.map(_.regionId).max + 1
     val diff = new DiffFunction[DenseVector[Double]] {
       def calculate(regionValues: DenseVector[Double]) = {
-        val cost = totalCost(data.map(row => ObservationLabelQueryScore(rowId = row.rowId, queryId = row.queryId, label = row.label, score = row.score + regionValues(row.regionId))))
+        val cost = totalCost(data.map(row => ObservationLabelQueryScore(rowId = row.rowId, weight=row.weight, queryId = row.queryId, label = row.label, score = row.score + regionValues(row.regionId))))
         val gradient = regionGradient(data, regionValues)
         (cost, gradient)
       }

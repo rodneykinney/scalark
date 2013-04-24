@@ -29,20 +29,20 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val value = model.eval(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
-      ObservationRowLabel(rowId = id, features = features, label = value)
+      ObservationRowLabel(rowId = id, weight = 1.0, features = features, label = value)
     }
     rows
   }
 
-  def generateData[L](nRows: Int, generator: GenerativeModel[L]) = {
+  def generateData[L](nRows: Int, labelGenerator: (IndexedSeq[Int], Random) => L) = {
     for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
-      ObservationRowLabel(rowId = id, features = features, label = generator.assignLabel(features, rand))
+      ObservationRowLabel(rowId = id, weight = 1.0, features = features, label = labelGenerator(features, rand))
     }
   }
 
   def binaryClassification(nRows: Int, nModesPerClass: Int, spikiness: Double = 2.5) = {
-    generateData(nRows, new GenerativeModel(List(gaussianMixtureModel(nModesPerClass, spikiness), gaussianMixtureModel(nModesPerClass, spikiness)), _ > 0))
+    generateData(nRows, new GenerativeModel(List(gaussianMixtureModel(nModesPerClass, spikiness), gaussianMixtureModel(nModesPerClass, spikiness)), _ > 0).assignLabel _)
   }
 
   def ranking(nQueries: Int, minResultsPerQuery: Int, maxResultsPerQuery: Int, nClasses: Int, nModesPerClass: Int, spikiness: Double = 2.5) = {
@@ -54,7 +54,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
         (features, generator.assignLabel(features, rand))
       })
       val queryRows = rows.sortBy(_._2).zipWithIndex.map(t => t match {
-        case ((f, l), i) => ObservationLabelRowQuery(rowId = rowId + i, queryId = queryId, label = l, features = f)
+        case ((f, l), i) => ObservationLabelRowQuery(rowId = rowId + i, weight = 1.0, queryId = queryId, label = l, features = f)
       })
       rowId += queryRows.size
       queryRows

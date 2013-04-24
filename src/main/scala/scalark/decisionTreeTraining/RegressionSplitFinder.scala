@@ -37,7 +37,7 @@ class RegressionSplitFinder(minLeafSize: Int) {
     var rWgt = scRight._2
     var rSum = scRight._3
 
-    if (lCount < minLeafSize || rCount < minLeafSize)
+    if (lWgt < minLeafSize || rWgt < minLeafSize)
       None
     else {
 
@@ -53,7 +53,7 @@ class RegressionSplitFinder(minLeafSize: Int) {
 
       // Update loss while we move points from right to left
       var stats = scLeft
-      while (lCount < node.size - minLeafSize) {
+      while (rWgt >= minLeafSize) {
         batch = column.batch(node, lCount, 1)
         stats = sumAndCount(batch, rowFilter)
         lCount += stats._1
@@ -79,8 +79,8 @@ class RegressionSplitFinder(minLeafSize: Int) {
     var lastfeatureValue = 0
     for (f <- s if rowFilter(f.rowId)) {
       count += 1
-      wgt += 1
-      sum += f.label
+      wgt += f.weight
+      sum += f.label * f.weight
       lastfeatureValue = f.featureValue
     }
     (count, wgt, sum, lastfeatureValue)

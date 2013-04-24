@@ -24,13 +24,13 @@ import org.scalatest.junit._
 class TestStochasticGradientBoostTrainer extends FunSuite {
   test("SGB - toy 1d") {
     val rows = Vector(
-      ObservationRowLabel(0, Vector(0), true),
-      ObservationRowLabel(1, Vector(1), true),
-      ObservationRowLabel(2, Vector(1), false),
-      ObservationRowLabel(3, Vector(1), false),
-      ObservationRowLabel(4, Vector(2), true))
+      ObservationRowLabel(0, 1.0, Vector(0), true),
+      ObservationRowLabel(1, 1.0, Vector(1), true),
+      ObservationRowLabel(2, 1.0, Vector(1), false),
+      ObservationRowLabel(3, 1.0, Vector(1), false),
+      ObservationRowLabel(4, 1.0, Vector(2), true))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
-    val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
+    val cost = new LogLogisticLoss()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     val tol = 1.0e-8
 
@@ -57,12 +57,12 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
 
   test("SGB - toy 2d") {
     val rows = Vector(
-      ObservationRowLabelScore(0, Vector(0, 0), true, 0.0),
-      ObservationRowLabelScore(1, Vector(0, 1), false, 0.0),
-      ObservationRowLabelScore(2, Vector(1, 0), true, 0.0),
-      ObservationRowLabelScore(3, Vector(1, 1), false, 0.0))
+      ObservationRowLabelScore(0, 1.0, Vector(0, 0), true, 0.0),
+      ObservationRowLabelScore(1, 1.0, Vector(0, 1), false, 0.0),
+      ObservationRowLabelScore(2, 1.0, Vector(1, 0), true, 0.0),
+      ObservationRowLabelScore(3, 1.0, Vector(1, 1), false, 0.0))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
-    val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
+    val cost = new LogLogisticLoss()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
@@ -80,7 +80,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
   test("SGB - 2d") {
     val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2) map (_.withScore(0.0))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
-    val cost = new LogLogisticLoss().asInstanceOf[CostFunction[Boolean, Observation with Label[Boolean]]]
+    val cost = new LogLogisticLoss()
     val trainer = new StochasticGradientBoostTrainer(config, cost, rows, rows.toSortedColumns)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)

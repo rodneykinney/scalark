@@ -21,7 +21,7 @@ import scala.collection._
  * Together with a TreePartition instance, this defines the data instances that exist within a given node of a decision tree
  */
 class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: Seq[T], val columnId: Int) {
-  private[this] val instances  = mutable.ArraySeq.empty[T] ++ data
+  private[this] val instances = mutable.ArraySeq.empty[T] ++ data
 
   def size = instances.size
 
@@ -38,21 +38,34 @@ class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: S
 
   /**
    * Retrieve a batch of instances from the given starting point
-   * At least minsize instances will be returned, if available
+   * At least minimumSize instances (with weight > 0) will be returned, if available
    * All instances with the same feature value will be included in the batch
    */
-  def batch(node: TreeRegion, first: Int, minimumsize: Int): List[T] = {
-    val minsize = math.min(minimumsize, node.size - first)
-    minsize match {
-      case 0 => Nil
-      case 1 => {
-        val next = {
-          if (node.start + first + 1 < node.start + node.size && instances(node.start + first + 1).featureValue == instances(node.start + first).featureValue) batch(node, first + 1, 1)
-          else batch(node, first + 1, 0)
-        }
-        instances(node.start + first) :: next
+  def batch(node: TreeRegion, start: Int, minimumSize: Int): List[T] = {
+    val minSize = math.min(minimumSize, node.size - start)
+    val current = instances(node.start + start)
+    if (current.weight == 0) {
+      minSize match {
+        case 0 => Nil
+        case _ => batch(node, start + 1, minSize)
       }
-      case _ => instances(node.start + first) :: batch(node, first + 1, minsize - 1)
+    } else {
+      minSize match {
+        case 0 => Nil
+        case 1 => {
+          val next = {
+            if (node.start + start + 1 < node.start + node.size
+              && instances(node.start + start + 1).featureValue
+              == current.featureValue)
+              batch(node, start + 1, 1)
+            else Nil
+          }
+          current :: next
+        }
+        case _ => {
+          current :: batch(node, start + 1, minSize - 1)
+        }
+      }
     }
   }
 

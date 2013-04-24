@@ -19,11 +19,12 @@ package scalark.decisionTreeTraining
 
 abstract class DecisionTreeNode {
   val regionId: Int
+  def isLeaf: Boolean
 }
 
-case class DecisionTreeLeaf(regionId: Int, value: Double) extends DecisionTreeNode
+case class DecisionTreeLeaf(regionId: Int, value: Double) extends DecisionTreeNode {def isLeaf = true}
 
-case class DecisionTreeSplit(regionId: Int, leftId: Int, rightId: Int, split: Split) extends DecisionTreeNode
+case class DecisionTreeSplit(regionId: Int, leftId: Int, rightId: Int, split: Split) extends DecisionTreeNode { def isLeaf = false}
 
 class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
   private val nodesByIndex = nodes.map(n => (n.regionId, n)).toMap
@@ -46,7 +47,7 @@ class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
     new DecisionTreeModel(nodes.filter(n => !replacedIds.contains(n.regionId)) ++ model.nodes)
   }
 
-  def leafCount = nodes.count(_.isInstanceOf[DecisionTreeLeaf])
+  def leafCount = nodes.count(_.isLeaf)
 }
 
 case class Split(columnId: Int, threshold: Int)

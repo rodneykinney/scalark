@@ -30,7 +30,11 @@ object EvalModel {
 
   def apply[L, T <: Label[L], W <: { def println(s: String); def close() }](dataFile: String, modelFile: String, outputWriter: W) = {
     val rows = new java.io.File(dataFile).readRows.toList
-    val models = io.Source.fromFile(modelFile).getLines.toList.map(_.asJson.convertTo[Model])
+    val modelJson = io.Source.fromFile(modelFile).getLines.mkString.asJson
+    val models = modelJson match {
+      case l:JsArray => modelJson.convertTo[List[Model]]
+      case _ => List(modelJson.convertTo[Model])
+    }
     val eval = new EvalModel(models, rows)
     val accuracy = eval(BinaryAccuracy)
     val pr = eval(PrecisionRecall)

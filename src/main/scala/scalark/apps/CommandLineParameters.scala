@@ -85,22 +85,26 @@ trait CommandLineParameters {
 
   def printUsage = {
     println("Options:")
-    for (p <- this.usage) this.getClass.getDeclaredField(p.name).getType match {
-      case t if t == classOf[Boolean] && p.required => println("  -" + p.name + ": " + p.desc)
-      case t if t == classOf[Boolean] && !p.required => println("  [-" + p.name + "] : " + p.desc)
-      case _ if p.required => println("  -" + p.name + " <value> : " + p.desc)
-      case _ => println("  [-" + p.name + " <value>] : " + p.desc)
+    for (p <- this.usage) {
+      val field = this.getClass.getDeclaredField(p.name)
+      field.setAccessible(true)
+      field.getType match {
+        case t if t == classOf[Boolean] && p.required => println("  -" + p.name + ": " + p.desc)
+        case t if t == classOf[Boolean] && !p.required => println("  [-" + p.name + "] : " + p.desc + "(default = " + field.get(this) + ")")
+        case _ if p.required => println("  -" + p.name + " <value> : " + p.desc)
+        case _ => println("  [-" + p.name + " <value>] : " + p.desc + " (default = " + field.get(this) + ")")
+      }
     }
   }
-  
+
   override def toString = {
     val sb = new StringBuilder()
-    sb.append(CommandLineParameters.this.getClass.getName().substring(CommandLineParameters.this.getClass.getName.lastIndexOf('.')+1))
+    sb.append(CommandLineParameters.this.getClass.getName().substring(CommandLineParameters.this.getClass.getName.lastIndexOf('.') + 1))
     sb.append("(")
     val params = for (p <- this.usage) yield {
       val field = CommandLineParameters.this.getClass.getDeclaredField(p.name)
       field.setAccessible(true)
-      p.name+"="+field.get(CommandLineParameters.this)
+      p.name + "=" + field.get(CommandLineParameters.this)
     }
     sb.append(params.mkString(","))
     sb.append(")")

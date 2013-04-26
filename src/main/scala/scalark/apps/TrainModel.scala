@@ -34,7 +34,7 @@ object TrainModel extends ConfiguredLogging {
       rowSampleRate = config.rowSampleRate,
       sampleRowsWithReplacement = config.withReplacement)
 
-    this(sgbConfig, config.train, config.output)
+    this(trainConfig = sgbConfig, input = config.train, output = config.output)
   }
 
   def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String) {

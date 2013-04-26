@@ -39,7 +39,9 @@ abstract class OrthogonalCostFunction[L, T <: Observation with Label[L]] extends
   def optimalDelta[T1 <: T with Score with Region](data: Seq[T1]) = {
     val regions = data.groupBy(row => row.regionId)
     (for ((regionId, regionData) <- regions) yield {
-      val delta = -regionData.map(l => l.weight * derivative(l)).sum / regionData.map(l => l.weight * secondDerivative(l)).sum
+      val num = -regionData.map(l => l.weight * derivative(l)).sum
+      val denom = math.max(regionData.map(l => l.weight * secondDerivative(l)).sum, 1.0e-6)
+      val delta = num / denom
       (regionId, delta)
     }).toMap
   }

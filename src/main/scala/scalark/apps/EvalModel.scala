@@ -25,7 +25,7 @@ object EvalModel {
     val config = new EvalModelConfig()
     if (!config.parse(args))
       System.exit(0)
-    this(config.dataFile, config.modelFile, config.outputWriter)
+    this(dataFile = config.dataFile, modelFile = config.modelFile, outputWriter = config.outputWriter)
   }
 
   def apply[L, T <: Label[L], W <: { def println(s: String); def close() }](dataFile: String, modelFile: String, outputWriter: W) = {
@@ -57,7 +57,7 @@ class EvalModel[T <: Observation with Label[Boolean] with RowOfFeatures](models:
     }
   }
 
-  def apply[MetricResult](metric:Metric[Boolean, Label[Boolean], MetricResult]) = {
+  def apply[MetricResult](metric: Metric[Boolean, Label[Boolean], MetricResult]) = {
     for (rowSet <- scoredRowSets) yield metric.compute(rowSet)
   }
 }

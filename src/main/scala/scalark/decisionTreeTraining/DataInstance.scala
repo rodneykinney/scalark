@@ -48,4 +48,3 @@ case class ObservationLabelFeatureScore[LabelType](val rowId: Int, var weight: D
 case class ObservationLabelFeatureScoreRegion[LabelType](val rowId: Int, var weight: Double, val label: LabelType, val featureValue: Int, var score: Double, var regionId: Int) extends Observation with Label[LabelType] with Feature with Score with Region
 case class ObservationRowLabel[LabelType](val rowId: Int, var weight: Double, val features: IndexedSeq[Int], val label: LabelType) extends Observation with RowOfFeatures with Label[LabelType]
 case class ObservationRowLabelScore[LabelType](val rowId: Int, var weight: Double, val features: IndexedSeq[Int], val label: LabelType, var score: Double) extends Observation with RowOfFeatures with Label[LabelType] with Score
-

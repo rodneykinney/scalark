@@ -22,7 +22,9 @@ class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Observation with L
 
   def cost[T <: Label[Boolean] with Score](x: T) = math.log(1 + math.exp(if (x.label) -x.score else x.score))
 
-  def derivative[T <: Observation with Label[Boolean] with Score](x: T) = if (x.label) -1.0 / (1.0 + math.exp(x.score)) else 1.0 / (1.0 + math.exp(-x.score))
+  def derivative[T <: Observation with Label[Boolean] with Score](x: T) = {
+    if (x.label) -1.0 / (1.0 + math.exp(x.score)) else 1.0 / (1.0 + math.exp(-x.score))
+  }
 
   def secondDerivative[T <: Observation with Label[Boolean] with Score](x: T) = {
     val sigma = 1.0 / (1.0 + math.exp(x.score))

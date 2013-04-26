@@ -36,16 +36,16 @@ package object decisionTreeTraining {
   }
 
   implicit def singleFeatureConvert[L](row: Observation with RowOfFeatures with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeature(rowId = row.rowId, weight=row.weight, featureValue = row.features(col), label = row.label)
+    def selectSingleFeature(col: Int) = new ObservationLabelFeature(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label)
   }
   implicit def singleFeatureConvertScore[L](row: Observation with RowOfFeatures with Score with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Score with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeatureScore(rowId = row.rowId, weight=row.weight, featureValue = row.features(col), label = row.label, score = row.score)
+    def selectSingleFeature(col: Int) = new ObservationLabelFeatureScore(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, score = row.score)
   }
   implicit def singleFeatureConvertQuery[L](row: Observation with RowOfFeatures with Query with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Query with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeatureQuery(rowId = row.rowId, weight=row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId)
+    def selectSingleFeature(col: Int) = new ObservationLabelFeatureQuery(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId)
   }
   implicit def singleFeatureConvertQueryScore[L](row: Observation with RowOfFeatures with Score with Query with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Score with Query with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeatureQueryScore(rowId = row.rowId, weight=row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId, score = row.score)
+    def selectSingleFeature(col: Int) = new ObservationLabelFeatureQueryScore(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId, score = row.score)
   }
 
   implicit def ValidateRowIds(data: Seq[Observation]) = new {
@@ -66,15 +66,15 @@ package object decisionTreeTraining {
   }
 
   implicit def decorateObservationWithScore[L](row: Observation with Label[L]) = new DecorateWithScore[Observation with Label[L]] {
-    def withScore(score: Double) = ObservationLabelScore(rowId = row.rowId, weight=row.weight, label = row.label, score = score)
+    def withScore(score: Double) = ObservationLabelScore(rowId = row.rowId, weight = row.weight, label = row.label, score = score)
   }
 
   implicit def decorateRowWithScore[L](row: Observation with RowOfFeatures with Label[L]) = new DecorateWithScore[Observation with RowOfFeatures with Label[L]] {
-    def withScore(score: Double) = ObservationRowLabelScore(rowId = row.rowId, weight=row.weight, label = row.label, score = score, features = row.features)
+    def withScore(score: Double) = ObservationRowLabelScore(rowId = row.rowId, weight = row.weight, label = row.label, score = score, features = row.features)
   }
 
   implicit def decorateQueryWithScore[L](row: Observation with Query with Label[L]) = new DecorateWithScore[Observation with Query with Label[L]] {
-    def withScore(score: Double) = ObservationLabelQueryScore(rowId = row.rowId, weight=row.weight, label = row.label, score = score, queryId = row.queryId)
+    def withScore(score: Double) = ObservationLabelQueryScore(rowId = row.rowId, weight = row.weight, label = row.label, score = score, queryId = row.queryId)
   }
 
   trait DecorateWithScoreAndRegion[T] {
@@ -82,14 +82,14 @@ package object decisionTreeTraining {
   }
 
   implicit def decorateObservationWithScoreAndRegion[L](row: Observation with Label[L]) = new DecorateWithScoreAndRegion[Observation with Label[L]] {
-    def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelScoreRegion(rowId = row.rowId, weight=row.weight, label = row.label, score = score, regionId = regionId)
+    def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelScoreRegion(rowId = row.rowId, weight = row.weight, label = row.label, score = score, regionId = regionId)
   }
 
   implicit def decorateQueryWithScoreAndRegion[L](row: Observation with Query with Label[L]) = new DecorateWithScoreAndRegion[Observation with Query with Label[L]] {
-    def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelQueryScoreRegion(rowId = row.rowId, weight=row.weight, label = row.label, score = score, regionId = regionId, queryId = row.queryId)
+    def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelQueryScoreRegion(rowId = row.rowId, weight = row.weight, label = row.label, score = score, regionId = regionId, queryId = row.queryId)
   }
 
-  implicit def FileWriter(lines: Seq[String]) = new {
+  implicit def FileWriter(lines: Iterable[String]) = new {
     def writeToFile(path: String) = {
       val writer = new PrintWriter(new FileWriter(path))
       try {
@@ -100,11 +100,20 @@ package object decisionTreeTraining {
     }
   }
 
+  
   implicit def FileRowReader(file: java.io.File) = new {
-    def readRows = {
-      for (line <- io.Source.fromFile(file).getLines.drop(1)) yield {
+    def readRows() = {
+      val lines = io.Source.fromFile(file).getLines.toBuffer
+      val columnNames = lines.head.split("\t")
+      val labelIndex = columnNames.indexOf("#Label")
+      require(labelIndex >= 0, "No column found with name #Label")
+      val dropColumn = Set(columnNames.zipWithIndex.filter(t => t._1.startsWith("#")).map(_._2): _*)
+      var rowId = -1
+      for (line <- lines.drop(1)) yield {
         val fields = line.split('\t')
-        ObservationRowLabel(rowId = fields(0).toInt, weight = 1.0, label = fields(1).toBoolean, features = fields.drop(2).map(_.toInt))
+        val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toInt)
+        rowId += 1
+        ObservationRowLabel(rowId = rowId, weight = 1.0, label = fields(labelIndex).toBoolean, features = features)
       }
     }
   }

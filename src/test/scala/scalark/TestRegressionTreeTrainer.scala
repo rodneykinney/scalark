@@ -30,7 +30,7 @@ class TestRegressionTreeTrainer extends FunSuite {
     val (train, test) = allRows.partition(r => r.rowId < 1000)
     val columns = train.toSortedColumns
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 500)
-    val trainer = new RegressionTreeTrainer(config, columns, train.size)
+    val trainer = new RegressionTreeTrainer(config, columns.par, train.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val trainError = trees.map(t => train.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
     val testError = trees.map(t => test.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
@@ -66,7 +66,7 @@ class TestRegressionTreeTrainer extends FunSuite {
 
   def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[ObservationRowLabel[Double]]) = {
     val columns = rows.toSortedColumns
-    val trainer = new RegressionTreeTrainer(config, columns, rows.size)
+    val trainer = new RegressionTreeTrainer(config, columns.par, rows.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val losses = trees.map(t => rows.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
     for (iter <- (1 until config.leafCount)) {

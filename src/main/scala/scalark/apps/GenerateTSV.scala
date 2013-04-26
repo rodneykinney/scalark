@@ -35,7 +35,8 @@ object GenerateTSV {
       minFeatureValue = config.minFeatureValue,
       maxFeatureValue = config.maxFeatureValue,
       seed = config.seed,
-      predictability = config.predictability)
+      predictability = config.predictability,
+      labelColumnName = config.labelColumnName)
   }
 
   def apply[L](nDim: Int, rowCount: Int,
@@ -46,8 +47,9 @@ object GenerateTSV {
     seed: Int = 117,
     labelCreator: Int => L,
     fileFormat: String = "TSV",
-    predictability: Double = 0.0) = {
-    val models = io.Source.fromFile(modelFile).getLines().map(_.asJson.convertTo[Model]).toSeq
+    predictability: Double = 0.0,
+    labelColumnName:String = "#Label") = {
+    val models = io.Source.fromFile(modelFile).mkString.asJson.convertTo[List[Model]]
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed = seed)
     val genModel = new GenerativeModel(models, labelCreator)
     val optimalModel = new MaximumLikelihoodModel(models, labelCreator)
@@ -63,11 +65,11 @@ object GenerateTSV {
     fileFormat match {
       case "TSV" => {
         val featureFormat = List.fill(rows.head.features.size)("%d").mkString("\t")
-        val lineFormat = "%d\t%s\t%s"
-        val header = "rowId\tlabel\t" + (0 until rows.head.features.size).map(i => "feature" + i).mkString("\t")
+        val lineFormat = "%s\t%s"
+        val header = labelColumnName+"\t" + (0 until rows.head.features.size).map(i => "feature" + i).mkString("\t")
         using(new PrintWriter(new FileWriter(outputFile))) { writer =>
           writer.println(header)
-          for (row <- rows) writer.println(lineFormat.format(row.rowId, row.label, featureFormat.format(row.features: _*)))
+          for (row <- rows) writer.println(lineFormat.format(row.label, featureFormat.format(row.features: _*)))
         }
       }
       case "ARFF" => {
@@ -88,12 +90,13 @@ class GenerateTSVConfig extends CommandLineParameters {
   var nDim: Int = 2
   var rowCount: Int = 100
   var format: String = "TSV"
-  var labelType: String = "binary"
+  var labelType: String = "Boolean"
   var modelFile: String = _
   var minFeatureValue: Int = 0
   var maxFeatureValue: Int = 1000
   var seed: Int = 117
   var predictability: Double = 0.0
+  var labelColumnName: String = "#Label"
 
   def usage = {
     required("modelFile", "File containing serialized model used to generate data") ::
@@ -106,6 +109,7 @@ class GenerateTSVConfig extends CommandLineParameters {
       optional("seed", "random seed") ::
       optional("predictability","Probability of assigning label via maximum likelihood") ::
       optional("format", "TSV | ARFF") ::
+      optional("labelColumnName","Name of column containing label in output file") ::
       Nil
   }
 

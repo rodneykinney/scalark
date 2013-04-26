@@ -21,7 +21,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
   config: StochasticGradientBoostTrainConfig,
   cost: CostFunction[L, T with Label[L]],
   labelData: Seq[T with Label[L]],
-  columns: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) {
+  cols: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) {
 
   require(labelData.validate)
 
@@ -29,6 +29,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
   private val rootRegion = new TreeRegion(0, 0, labelData.size)
   private val rand = new util.Random(config.randomSeed)
   private val data = for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)
+  private val columns = cols.par
 
   def model = new AdditiveModel(trees)
 
@@ -57,7 +58,6 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
       val columnSampler = sampler(columns.size, config.featureSampleRate, rand)
       val sampledColumns = columns.filter(c => columnSampler(c.columnId))
       // Sample rows
-      //      val rowSampler = sampler(columns.head.size, config.rowSampleRate, rand)
       val sampleWeights: Int => Double =
         if (config.rowSampleRate == 1.0)
           (i: Int) => 1.0
@@ -102,10 +102,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
       }
       val replacedLeaves = for (l <- leaves) yield {
         val delta = regionIdToDelta(l.regionId)
-        //TODO: remove 
-        if (delta.isNaN()) {
-          println("Leaf with NaN value")
-        }
+        require(!delta.isNaN, "Leaf with NaN value")
         new DecisionTreeLeaf(regionId = l.regionId, value = delta * config.learningRate)
       }
       val deltaModel = new DecisionTreeModel(splits ++ replacedLeaves)

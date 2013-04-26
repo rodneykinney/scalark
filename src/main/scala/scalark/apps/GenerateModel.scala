@@ -36,8 +36,8 @@ object GenerateModel {
   def apply(nDim: Int, nClasses: Int, nModesPerClass: Int, outputFile: String, minFeatureValue: Int = 0, maxFeatureValue: Int = 1000, seed: Int = 117, spikiness: Double = 1.0) = {
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed)
     val models = for (i <- 0 until nClasses) yield synthesizer.gaussianMixtureModel(nModesPerClass, spikiness)
-    using(new java.io.PrintWriter(new java.io.File(outputFile))) {
-      w => for (m <- models) w.println(m.toJson)
+    using(new java.io.PrintWriter(new java.io.File(outputFile))) { writer => 
+      writer.println(models.toList.toJson)
     }
   }
 }

@@ -103,7 +103,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   test("RegressionTreeTrainer") {
     init
 
-    var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), Vector(column), rows.size)
+    var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), Vector(column).par, rows.size)
 
     val model1 = trainer.model
     val loss1 = rows.map(r => math.pow(r.label - model1.eval(r.features), 2)).sum

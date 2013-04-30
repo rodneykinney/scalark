@@ -17,8 +17,7 @@ package scalark.decisionTreeTraining
 
 import scala.collection._
 
-class StochasticGradientBoostTrainer[L, T <: Observation](
-  config: StochasticGradientBoostTrainConfig,
+class StochasticGradientBoostTrainer[L, T <: Observation](config: StochasticGradientBoostTrainConfig,
   cost: CostFunction[L, T with Label[L]],
   labelData: Seq[T with Label[L]],
   cols: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) {
@@ -74,7 +73,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
         }
       // Compute gradient
       val gradients = new Array[Double](data.size)
-      data.zip(cost.gradient(data)) foreach { t => gradients(t._1.rowId) = t._2 }
+      data.zip(cost.gradient(data)) foreach { case (row, grad) => gradients(row.rowId) = grad }
       // Compute residuals.  Regression tree will be fit to this data
       val residualData = for (c <- sampledColumns) yield {
         val regressionInstances = (for (row <- c.all(rootRegion)) yield {
@@ -111,9 +110,4 @@ class StochasticGradientBoostTrainer[L, T <: Observation](
       trees = trees :+ deltaModel
     }
   }
-
-  private def rowIdsInAscendingOrder(data: Seq[Observation]) = {
-    data.head.rowId == 0 && data.take(data.size - 1).zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
-  }
-
 }

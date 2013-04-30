@@ -27,9 +27,9 @@ object GenerateTSV {
       System.exit(0)
 
     this(nDim = config.nDim,
-      rowCount = config.rowCount,
-      outputFile = config.outputFile,
-      modelFile = config.modelFile,
+      rowCount = config.nRows,
+      outputFile = config.output,
+      modelFile = config.model,
       labelCreator = config.labelCreator,
       fileFormat = config.format,
       minFeatureValue = config.minFeatureValue,
@@ -86,12 +86,12 @@ object GenerateTSV {
 }
 
 class GenerateTSVConfig extends CommandLineParameters {
-  var outputFile: String = _
+  var output: String = _
   var nDim: Int = 2
-  var rowCount: Int = 100
+  var nRows: Int = 100
   var format: String = "TSV"
   var labelType: String = "Boolean"
-  var modelFile: String = _
+  var model: String = _
   var minFeatureValue: Int = 0
   var maxFeatureValue: Int = 1000
   var seed: Int = 117
@@ -99,10 +99,10 @@ class GenerateTSVConfig extends CommandLineParameters {
   var labelColumnName: String = "#Label"
 
   def usage = {
-    required("modelFile", "File containing serialized model used to generate data") ::
-      required("outputFile", "Output TSV File") ::
+    required("model", "File containing serialized model used to generate data") ::
+      required("output", "Output TSV File") ::
       optional("nDim", "Number of dimensions") ::
-      optional("rowCount", "Number of instances") ::
+      optional("nRows", "Number of instances") ::
       optional("labelType", "Boolean | Int") ::
       optional("minFeatureValue", "lower limit of range of feature values") ::
       optional("maxFeatureValue", "upper limit of range for feature values") ::

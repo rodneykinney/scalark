@@ -25,7 +25,7 @@ object EvalModel {
     val config = new EvalModelConfig()
     if (!config.parse(args))
       System.exit(0)
-    this(dataFile = config.dataFile, modelFile = config.modelFile, outputWriter = config.outputWriter)
+    this(dataFile = config.data, modelFile = config.model, outputWriter = config.outputWriter)
   }
 
   def apply[L, T <: Label[L], W <: { def println(s: String); def close() }](dataFile: String, modelFile: String, outputWriter: W) = {
@@ -67,8 +67,8 @@ class EvalModel[T <: Observation with Label[Boolean] with RowOfFeatures](models:
 }
 
 class EvalModelConfig extends CommandLineParameters {
-  var dataFile: String = _
-  var modelFile: String = _
+  var data: String = _
+  var model: String = _
   var output: String = _
 
   def outputWriter = {
@@ -89,8 +89,8 @@ class EvalModelConfig extends CommandLineParameters {
   }
 
   def usage = {
-    required("dataFile", "Input TSV file containing test data") ::
-      required("modelFile", "JSON-format file containing model") ::
+    required("data", "Input TSV file containing test data") ::
+      required("model", "JSON-format file containing model") ::
       optional("output", "Output file containing results") ::
       Nil
   }

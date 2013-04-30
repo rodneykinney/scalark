@@ -25,7 +25,7 @@ object ScoreRows {
     if (!config.parse(args))
       System.exit(0)
 
-    apply(dataFile = config.dataFile, modelFile = config.modelFile, output = config.output)
+    apply(dataFile = config.data, modelFile = config.model, output = config.output)
   }
   def apply(dataFile: String, modelFile: String, output: String) = {
     val rows = new java.io.File(dataFile).readRows
@@ -38,13 +38,13 @@ object ScoreRows {
 }
 
 class ScoreRowsConfig extends CommandLineParameters {
-  var dataFile: String = _
-  var modelFile: String = _
+  var data: String = _
+  var model: String = _
   var output: String = _
 
   def usage = {
-    required("dataFile", "Input TSV containing features") ::
-      required("modelFile", "Model file in JSON format") ::
+    required("data", "Input TSV containing features") ::
+      required("model", "Model file in JSON format") ::
       required("output", "Output TSV containing scores") ::
       Nil
   }

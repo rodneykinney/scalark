@@ -49,16 +49,16 @@ package object decisionTreeTraining {
   }
 
   implicit def ValidateRowIds(data: Seq[Observation]) = new {
-    def validate = data.head.rowId == 0 && data.zip(data.drop(1)).forall(t => t._2.rowId == t._1.rowId + 1)
+    def validate = data.head.rowId == 0 && data.zip(data.drop(1)).forall { case (first, second) => second.rowId == first.rowId + 1 }
   }
   implicit def ValidateRowAndQueryIds(data: Seq[Observation with Query with Label[Int]]) = new {
     def validate = data.head.rowId == 0 &&
-      data.zip(data.drop(1)).forall(t => {
-        val (row, nextRow) = t
-        nextRow.rowId == row.rowId + 1 &&
-          (nextRow.queryId == row.queryId + 1 ||
-            nextRow.label >= row.label)
-      })
+      data.zip(data.drop(1)).forall {
+        case (row, nextRow) =>
+          nextRow.rowId == row.rowId + 1 &&
+            (nextRow.queryId == row.queryId + 1 ||
+              nextRow.label >= row.label)
+      }
   }
 
   trait DecorateWithScore[T] {
@@ -100,14 +100,13 @@ package object decisionTreeTraining {
     }
   }
 
-  
   implicit def FileRowReader(file: java.io.File) = new {
     def readRows() = {
       val lines = io.Source.fromFile(file).getLines.toBuffer
       val columnNames = lines.head.split("\t")
       val labelIndex = columnNames.indexOf("#Label")
       require(labelIndex >= 0, "No column found with name #Label")
-      val dropColumn = Set(columnNames.zipWithIndex.filter(t => t._1.startsWith("#")).map(_._2): _*)
+      val dropColumn = Set(columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2): _*)
       var rowId = -1
       for (line <- lines.drop(1)) yield {
         val fields = line.split('\t')

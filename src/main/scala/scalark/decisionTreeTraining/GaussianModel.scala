@@ -20,12 +20,10 @@ case class GaussianModel(val means: IndexedSeq[Double], val variance: IndexedSeq
   private val scale = 1.0 / math.pow(range, 2)
   def eval(features: Seq[Int]) = {
     var sum = 0.0
-    for (
-      i <- (0 until means.length);
-      j <- (0 until means.length)
-    ) sum += (features(featureIndices(i)) - means(i) * range) *
-      variance(i)(j) * scale *
-      (features(j) - means(j) * range)
+    for (i <- (0 until variance.size)) {
+      val projection = variance(i) zip (0 until means.length) map { case (v, j) => v * (features(featureIndices(j)) - means(j) * range) }
+      sum += projection.map(x => x * x * scale).sum
+    }
     math.exp(-sum * sum)
   }
 }

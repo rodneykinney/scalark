@@ -19,6 +19,9 @@ import scala.util.Random
 import scala.math._
 import scala.collection._
 
+/**
+ * Generates Gaussian-mixture distributions, and labeled data drawn from those distributions
+ */
 class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, seed: Int = 117) {
   private val range = maxFeatureValue - minFeatureValue
   private val scale = 1.0 / pow(range, 2)
@@ -88,16 +91,15 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     for (i <- (0 until dims)) {
       var col: IndexedSeq[Double] = (0 until dims) map (i => rand.nextDouble)
       for (j <- (0 until i)) {
-        val projection = (N(j).zip(col)).map(t => t._1 * t._2).sum
-        col = N(j) zip col map (t => t._2 - t._1 * projection)
+        val projection = (N(j).zip(col)).map { case (m, v) => m * v }.sum
+        col = N(j) zip col map { case (m, v) => v - m * projection }
       }
       val norm = math.sqrt(col map (x => x * x) sum)
       col = col map (_ / norm)
       N = N :+ col
     }
-    val diags = (0 until dims) map (i => rand.nextDouble * spikiness) map (x => x * x)
-    N = N zip diags map (t => t._1.map(x => x * t._2))
+    val weight = (0 until dims) map (i => rand.nextDouble * spikiness)
+    N = N zip weight map { case (v, c) => v.map(x => x * c) }
     N
   }
-
 }

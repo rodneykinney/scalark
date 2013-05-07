@@ -44,7 +44,7 @@ object GenerateModel {
 
 class GenerateModelConfig extends CommandLineParameters {
   var output: String = _
-  var nDim: Int = 2
+  var nDim: Int = _
   var nModesPerClass: Int = 6
   var nClasses: Int = 2
   val seed: Int = 117
@@ -52,7 +52,7 @@ class GenerateModelConfig extends CommandLineParameters {
 
   def usage = {
     required("output", "Output File containing model in JSON format") ::
-      optional("nDim", "Number of dimensions") ::
+      required("nDim", "Number of dimensions") ::
       optional("nClasses", "Number of classes") ::
       optional("nModesPerClass", "Number of peaks in single-class distribution") ::
       optional("seed", "Random seed") ::

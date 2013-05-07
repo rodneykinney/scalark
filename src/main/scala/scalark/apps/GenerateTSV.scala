@@ -87,8 +87,8 @@ object GenerateTSV {
 
 class GenerateTSVConfig extends CommandLineParameters {
   var output: String = _
-  var nDim: Int = 2
-  var nRows: Int = 100
+  var nDim: Int = _
+  var nRows: Int = _
   var format: String = "TSV"
   var labelType: String = "Boolean"
   var model: String = _
@@ -101,8 +101,8 @@ class GenerateTSVConfig extends CommandLineParameters {
   def usage = {
     required("model", "File containing serialized model used to generate data") ::
       required("output", "Output TSV File") ::
-      optional("nDim", "Number of dimensions") ::
-      optional("nRows", "Number of instances") ::
+      required("nDim", "Number of dimensions") ::
+      required("nRows", "Number of instances") ::
       optional("labelType", "Boolean | Int") ::
       optional("minFeatureValue", "lower limit of range of feature values") ::
       optional("maxFeatureValue", "upper limit of range for feature values") ::

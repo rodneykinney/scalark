@@ -18,16 +18,16 @@ package scalark
 import scalark.decisionTreeTraining._
 
 import org.scalatest._
-import scala.collection.immutable._
 import org.junit.runner._
 import org.scalatest.junit._
+import scala.collection._
 
 @RunWith(classOf[JUnitRunner])
 class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   val size = 10
   val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
   val partition: TreePartition = new TreePartition(size)
-//  val converter = (row: ObservationRowLabel[Double], col: Int) => row.singleFeature(col)//ObservationLabelFeature(rowId = row.rowId, label = row.label, featureValue = row.features(col))
+  //  val converter = (row: ObservationRowLabel[Double], col: Int) => row.singleFeature(col)//ObservationLabelFeature(rowId = row.rowId, label = row.label, featureValue = row.features(col))
   var column: FeatureColumn[Double, Observation with Feature with Label[Double]] = _
   var rows: Seq[ObservationRowLabel[Double]] = _
 
@@ -36,7 +36,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   }
 
   def init = {
-    rows = (0 until size).map(i => ObservationRowLabel(rowId = i, weight=1.0, features = Vector(features(i)), label = features(i).toDouble))
+    rows = (0 until size).map(i => ObservationRowLabel(rowId = i, weight = 1.0, features = Vector(features(i)), label = features(i).toDouble))
     column = rows.toSortedColumns.head
   }
 
@@ -65,7 +65,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   }
 
   test("Node Split") {
-    val ids = new scala.collection.immutable.HashSet() ++ Array(0, 3, 6, 7)
+    val ids = Set(0, 3, 6, 7)
     val root = partition.root
     val (leftChild, rightChild) = partition.split(root, 4)
     column.repartition(root, leftChild, rightChild, ids)

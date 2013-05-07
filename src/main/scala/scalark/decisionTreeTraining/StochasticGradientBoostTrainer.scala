@@ -27,7 +27,7 @@ class StochasticGradientBoostTrainer[L, T <: Observation](config: StochasticGrad
   private var trees = Vector.empty[Model]
   private val rootRegion = new TreeRegion(0, 0, labelData.size)
   private val rand = new util.Random(config.randomSeed)
-  private val data = for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)
+  private val data = (for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)).toIndexedSeq
   private val columns = cols.par
 
   def model = new AdditiveModel(trees)

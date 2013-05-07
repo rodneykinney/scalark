@@ -31,9 +31,10 @@ class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: S
   /**
    * A subsequence of data instances within the given region
    */
-  def range(node: TreeRegion, start: Int, length: Int): IndexedSeq[T] = {
-    for (i <- (node.start + start until node.start + length))
-      yield instances(i)
+  def range(node: TreeRegion, start: Int, end: Int): IndexedSeq[T] = {
+    instances.slice(node.start+start, node.start + end)
+//    for (i <- (node.start + start until node.start + end))
+//      yield instances(i)
   }
 
   /**

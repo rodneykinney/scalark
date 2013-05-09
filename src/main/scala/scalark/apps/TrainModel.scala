@@ -17,8 +17,8 @@ package scalark.apps
 import breeze.util.logging._
 import scalark.decisionTreeTraining._
 import scalark.serialization._
-
 import spray.json._
+import scalark.decisionTreeTraining.ObservationLabelScoreRegion
 
 object TrainModel extends ConfiguredLogging {
 
@@ -38,23 +38,23 @@ object TrainModel extends ConfiguredLogging {
   }
 
   def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String) {
-    log.info("Reading data from "+input)
+    log.info("Training configuration: " + trainConfig)
     val rows = new java.io.File(input).readRows.toList
-    val columns = rows.toSortedColumns
-    val labels = rows.map(r => ObservationLabel(r.rowId, 1.0, r.label)).toList
-    log.info("Read "+labels.size+" rows")
-    log.info("Training configuration: "+trainConfig)
+    val columns = rows.toSortedColumnData
+    val labels = rows.map(r => ObservationLabelScoreRegion(rowId=r.rowId, weight = 1.0, label = r.label, score = 0.0, regionId = -1)).toIndexedSeq
+    log.info("Read " + labels.size + " rows from " + input)
     var iter = 0
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)
-    val start = new java.util.Date()
-    val trees = trainer.train({log.info("Iteration #"+iter) ; iter += 1})
-    val end = new java.util.Date()
-    log.info("Training complete in "+(end.getTime-start.getTime).toDouble/1000 + " seconds")
+    val start = System.currentTimeMillis()
+    //TODO: Remove
+    val trees = trainer.train({ log.info("Iteration #" + iter); iter += 1 ; System.in.read})
+    val end = System.currentTimeMillis()
+    log.info("Training complete in " + (end - start).toDouble / 1000 + " seconds")
     val treesJson = trees.toJson
-    log.info("Saving model to "+output)
-    using (new java.io.PrintWriter(new java.io.File(output))) {
+    using(new java.io.PrintWriter(new java.io.File(output))) {
       p => p.println(treesJson)
     }
+    log.info("Saved model to " + output)
   }
 }
 
@@ -77,7 +77,7 @@ class TrainModelConfig extends CommandLineParameters {
       optional("leafCount", "Number of leaf nodes per tree") ::
       optional("minLeafSize", "Minimum number of instances per leaf node") ::
       optional("rowSampleRate", "Number of rows to sample at each iteration") ::
-      optional("withReplacement","Sample rows with replacement") ::
+      optional("withReplacement", "Sample rows with replacement") ::
       optional("featureSampleRate", "Number of features to sample at each iteration") ::
       Nil
   }

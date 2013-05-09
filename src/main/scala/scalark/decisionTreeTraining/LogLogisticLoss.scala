@@ -18,20 +18,20 @@ package scalark.decisionTreeTraining
 /**
  * Log-Logistic loss function: log(1 + exp(-yf))
  */
-class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Observation with Label[Boolean]] {
+class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Label[Boolean] with Weight] {
 
   def cost[T <: Label[Boolean] with Score](x: T) = math.log(1 + math.exp(if (x.label) -x.score else x.score))
 
-  def derivative[T <: Observation with Label[Boolean] with Score](x: T) = {
+  def derivative[T <: Label[Boolean] with Weight with Score](x: T) = {
     if (x.label) -1.0 / (1.0 + math.exp(x.score)) else 1.0 / (1.0 + math.exp(-x.score))
   }
 
-  def secondDerivative[T <: Observation with Label[Boolean] with Score](x: T) = {
+  def secondDerivative[T <: Label[Boolean] with Weight with Score](x: T) = {
     val sigma = 1.0 / (1.0 + math.exp(x.score))
     sigma * (1 - sigma)
   }
 
-  def optimalConstant[T <: Observation with Label[Boolean]](labels: Seq[T]) = {
+  def optimalConstant[T <: Label[Boolean] with Weight](labels: Seq[T]) = {
     val (nTotal, nPositive) = ((0.0, 0.0) /: labels) { (t, l) => if (l.label) (t._1 + l.weight, t._2 + 1) else (t._1 + l.weight, t._2) }
     if (nPositive == 0 || nPositive == nTotal)
       math.log((nPositive + 1) / (nTotal + 1))

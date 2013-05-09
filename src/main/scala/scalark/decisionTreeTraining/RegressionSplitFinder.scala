@@ -23,16 +23,16 @@ class RegressionSplitFinder(minLeafSize: Int) {
   /**
    * Given a column of input data, scan through all possible threshold values and pick the split with the smallest loss
    */
-  def findSplitCandidate[T <: Observation with Feature with Label[Double]](column: FeatureColumn[Double, T], node: TreeRegion, rowFilter: Int => Boolean = i => true) = {
+  def findSplitCandidate[T <: Observation with Label[Double] with Weight with Feature](column: FeatureColumn[Double, T], node: TreeRegion) = {
     // Statistics of points in the left split
     var batch = column.batch(node, 0, minLeafSize)
-    val scLeft = sumAndCount(batch, rowFilter)
+    val scLeft = sumAndCount(batch)
     var lCount = scLeft._1
     var lWgt = scLeft._2
     var lSum = scLeft._3
 
     // Statistics of points in the right split
-    val scRight = sumAndCount(column.range(node, lCount, node.size), rowFilter)
+    val scRight = sumAndCount(column.range(node, lCount, node.size))
     var rCount = scRight._1
     var rWgt = scRight._2
     var rSum = scRight._3
@@ -55,7 +55,7 @@ class RegressionSplitFinder(minLeafSize: Int) {
       var stats = scLeft
       while (rWgt >= minLeafSize) {
         batch = column.batch(node, lCount, 1)
-        stats = sumAndCount(batch, rowFilter)
+        stats = sumAndCount(batch)
         lCount += stats._1
         lWgt += stats._2
         lSum += stats._3
@@ -72,12 +72,12 @@ class RegressionSplitFinder(minLeafSize: Int) {
     }
   }
 
-  private def sumAndCount[T <: Observation with Feature with Label[Double]](s: Seq[T], rowFilter: Int => Boolean) = {
+  private def sumAndCount[T <: Label[Double] with Weight with Feature](s: Seq[T]) = {
     var count = 0
     var wgt = 0.0
     var sum = 0.0
     var lastfeatureValue = 0
-    for (f <- s if rowFilter(f.rowId)) {
+    for (f <- s) {
       count += 1
       wgt += f.weight
       sum += f.label * f.weight

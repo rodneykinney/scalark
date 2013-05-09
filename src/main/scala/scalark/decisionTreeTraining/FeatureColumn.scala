@@ -20,9 +20,9 @@ import scala.collection._
  *
  * Together with a TreePartition instance, this defines the data instances that exist within a given node of a decision tree
  */
-class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: Seq[T], val columnId: Int) {
-  private[this] val instances = mutable.ArraySeq.empty[T] ++ data
-
+class FeatureColumn[L, T <: Observation with Weight with Feature](val instances: mutable.IndexedSeq[T], val columnId: Int) {
+  
+  def this(immutableInstances:Seq[T], columnId:Int) = this(mutable.ArraySeq.empty[T] ++ immutableInstances, columnId)
   def size = instances.size
 
   /** All instances within the given region */
@@ -33,8 +33,6 @@ class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: S
    */
   def range(node: TreeRegion, start: Int, end: Int): IndexedSeq[T] = {
     instances.slice(node.start+start, node.start + end)
-//    for (i <- (node.start + start until node.start + end))
-//      yield instances(i)
   }
 
   /**
@@ -77,7 +75,7 @@ class FeatureColumn[L, +T <: Observation with Feature with Label[L]](val data: S
   def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, partition: Int => Boolean) = {
     val size = leftChild.size
 
-    val tmp = (parent.start until parent.start + parent.size).map(instances(_)).toIndexedSeq
+    val tmp = instances.slice(parent.start,parent.start+parent.size).toIndexedSeq
 
     var iLeft = leftChild.start; var iRight = rightChild.start
     for (fi <- tmp) {

@@ -23,10 +23,35 @@ package object decisionTreeTraining {
    * Add method toSortedColumns to sequences of rows, to produce column-wise data from row-wise data
    */
   implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
+    def toSortedColumnData = {
+      for (col <- (0 until rows.head.features.length)) yield {
+        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => new ObservationFeature(i, r.features(col)) }.force.toIndexedSeq
+      }
+    }
+    //TODO: Remove dead code
+    /*
     def toSortedColumns[LabelType, ColumnType <: Observation](implicit featureSelector: RowType => SelectSingleFeature[LabelType, ColumnType with Feature with Label[LabelType]]) = {
       for (col <- (0 until rows.head.features.length)) yield {
-        val data = rows.view.sortBy(_.features(col)).map(_.selectSingleFeature(col)).force
+        val data = rows.view.sortBy(_.features(col)).map(_.selectSingleFeature(col)).force.toIndexedSeq
         new FeatureColumn[LabelType, ColumnType with Feature with Label[LabelType]](data, col)
+      }
+    }
+    * 
+    */
+  }
+
+  implicit def addWeightAndLabel(columns: immutable.Seq[Seq[Observation with Feature]]) = new {
+    def toFeatureColumns[L](weightFinder: Int => Double, labelFinder: Int => L) = {
+      for ((col, columnId) <- columns.zipWithIndex) yield {
+        val instances = mutable.ArraySeq.empty[Observation with Feature with Weight with Label[L]] ++
+          (for (c <- col) yield new Observation with Feature with Weight with Label[L] {
+            def rowId = c.rowId
+            def featureValue = c.featureValue
+            def weight = weightFinder(c.rowId)
+            def weight_=(value:Double) = ()
+            def label = labelFinder(c.rowId)
+          })
+        new FeatureColumn[L, Observation with Feature with Weight with Label[L]](instances, columnId)
       }
     }
   }
@@ -35,6 +60,8 @@ package object decisionTreeTraining {
     def selectSingleFeature(col: Int): T
   }
 
+  // TODO:  Remove dead code
+  /*
   implicit def singleFeatureConvert[L](row: Observation with RowOfFeatures with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Label[L]] {
     def selectSingleFeature(col: Int) = new ObservationLabelFeature(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label)
   }
@@ -47,6 +74,8 @@ package object decisionTreeTraining {
   implicit def singleFeatureConvertQueryScore[L](row: Observation with RowOfFeatures with Score with Query with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Score with Query with Label[L]] {
     def selectSingleFeature(col: Int) = new ObservationLabelFeatureQueryScore(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId, score = row.score)
   }
+  * 
+  */
 
   implicit def ValidateRowIds(data: Seq[Observation]) = new {
     def validate = data.head.rowId == 0 && data.zip(data.drop(1)).forall { case (first, second) => second.rowId == first.rowId + 1 }
@@ -65,15 +94,14 @@ package object decisionTreeTraining {
     def withScore(score: Double): T with Score
   }
 
-  implicit def decorateObservationWithScore[L](row: Observation with Label[L]) = new DecorateWithScore[Observation with Label[L]] {
+  implicit def decorateObservationWithScore[L](row: Observation with Weight with Label[L]) = new DecorateWithScore[Observation with Label[L]] {
     def withScore(score: Double) = ObservationLabelScore(rowId = row.rowId, weight = row.weight, label = row.label, score = score)
   }
 
-  implicit def decorateRowWithScore[L](row: Observation with RowOfFeatures with Label[L]) = new DecorateWithScore[Observation with RowOfFeatures with Label[L]] {
+  implicit def decorateRowWithScore[L](row: Observation with Weight with RowOfFeatures with Label[L]) = new DecorateWithScore[Observation with RowOfFeatures with Label[L]] {
     def withScore(score: Double) = ObservationRowLabelScore(rowId = row.rowId, weight = row.weight, label = row.label, score = score, features = row.features)
   }
-
-  implicit def decorateQueryWithScore[L](row: Observation with Query with Label[L]) = new DecorateWithScore[Observation with Query with Label[L]] {
+  implicit def decorateQueryWithScore[L](row: Observation with Weight with Query with Label[L]) = new DecorateWithScore[Observation with Query with Label[L]] {
     def withScore(score: Double) = ObservationLabelQueryScore(rowId = row.rowId, weight = row.weight, label = row.label, score = score, queryId = row.queryId)
   }
 
@@ -81,11 +109,11 @@ package object decisionTreeTraining {
     def withScoreAndRegion(score: Double, regionId: Int): T with Score with Region
   }
 
-  implicit def decorateObservationWithScoreAndRegion[L](row: Observation with Label[L]) = new DecorateWithScoreAndRegion[Observation with Label[L]] {
+  implicit def decorateObservationWithScoreAndRegion[L](row: Observation with Weight with Label[L]) = new DecorateWithScoreAndRegion[Observation with Label[L]] {
     def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelScoreRegion(rowId = row.rowId, weight = row.weight, label = row.label, score = score, regionId = regionId)
   }
 
-  implicit def decorateQueryWithScoreAndRegion[L](row: Observation with Query with Label[L]) = new DecorateWithScoreAndRegion[Observation with Query with Label[L]] {
+  implicit def decorateQueryWithScoreAndRegion[L](row: Observation with Weight with Query with Label[L]) = new DecorateWithScoreAndRegion[Observation with Query with Label[L]] {
     def withScoreAndRegion(score: Double, regionId: Int) = ObservationLabelQueryScoreRegion(rowId = row.rowId, weight = row.weight, label = row.label, score = score, regionId = regionId, queryId = row.queryId)
   }
 

@@ -46,7 +46,7 @@ object EvalModel {
   }
 }
 
-class EvalModel[T <: Observation with Label[Boolean] with RowOfFeatures](models: List[Model], rows: Seq[T]) {
+class EvalModel[T <: Observation with Weight with Label[Boolean] with RowOfFeatures](models: List[Model], rows: Seq[T]) {
   val scoredRowSets = models match {
     case (a: AdditiveModel) :: Nil => {
       var cumulative = new AdditiveModel(Vector.empty[Model])

@@ -15,7 +15,7 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
-trait CostFunction[L, T <: Label[L]] {
+trait CostFunction[L, T <: Label[L] with Weight] {
   /**
    * Constant value that minimizes the cost for this set of instances (e.g. mean value)
    */

@@ -18,7 +18,7 @@ import scala.collection._
 /**
  * An Orthogonal cost function is one in which the derivative with respect to f_i depends only on f_i
  */
-abstract class OrthogonalCostFunction[L, T <: Observation with Label[L]] extends CostFunction[L, T] {
+abstract class OrthogonalCostFunction[L, T <: Label[L] with Weight] extends CostFunction[L, T] {
 
   /** Value of the cost function for a single point */
   def cost[T1 <: T with Score](x: T1): Double

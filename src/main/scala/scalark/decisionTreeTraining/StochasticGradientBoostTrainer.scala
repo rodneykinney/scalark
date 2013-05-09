@@ -17,17 +17,20 @@ package scalark.decisionTreeTraining
 
 import scala.collection._
 
-class StochasticGradientBoostTrainer[L, T <: Observation](config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[L, T with Label[L]],
-  labelData: Seq[T with Label[L]],
-  cols: immutable.Seq[FeatureColumn[L, T with Label[L] with Feature]])(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) {
+class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: StochasticGradientBoostTrainConfig,
+  cost: CostFunction[L, T],
+  labelData: IndexedSeq[T with Score with Region],
+  cols: immutable.Seq[immutable.Seq[Observation with Feature]])
+  //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
+  {
 
-  require(labelData.validate)
+  //TODO:  Validation
+  //require(labelData.validate)
 
   private var trees = Vector.empty[Model]
-  private val rootRegion = new TreeRegion(0, 0, labelData.size)
   private val rand = new util.Random(config.randomSeed)
-  private val data = (for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)).toIndexedSeq
+  //TODO: Rename
+  private val data = labelData//(for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)).toIndexedSeq
   private val columns = cols.par
 
   def model = new AdditiveModel(trees)
@@ -55,31 +58,31 @@ class StochasticGradientBoostTrainer[L, T <: Observation](config: StochasticGrad
       val sampleSeed = rand.nextInt
       // Sample columns
       val columnSampler = sampler(columns.size, config.featureSampleRate, rand)
-      val sampledColumns = columns.filter(c => columnSampler(c.columnId))
+      val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnSampler(columnId) } map (_._1)
       // Sample rows
-      val sampleWeights: Int => Double =
-        if (config.rowSampleRate == 1.0)
-          (i: Int) => 1.0
-        else {
-          val wgt = new Array[Double](data.size)
-          if (config.rowSampleRate < 1.0) {
-            if (config.sampleRowsWithReplacement) {
-              for (i <- 0 until (data.size * config.rowSampleRate + .5).toInt) wgt(rand.nextInt(data.size)) += 1
-            } else {
-              for (i <- 0 until data.size if rand.nextDouble < config.rowSampleRate) wgt(i) = 1
-            }
-          }
-          wgt
+      if (config.rowSampleRate != 1.0) {
+        for (d <- data) d.weight = 0
+        if (config.sampleRowsWithReplacement) {
+          for (i <- 0 until (data.size * config.rowSampleRate + .5).toInt) data(rand.nextInt(data.size)).weight += 1
+        } else {
+          for (d <- data if rand.nextDouble < config.rowSampleRate) d.weight = 1
         }
+      }
       // Compute gradient
-      val gradients = new Array[Double](data.size)
-      data.zip(cost.gradient(data)) foreach { case (row, grad) => gradients(row.rowId) = grad }
+      val gradients = cost.gradient(data)
       // Compute residuals.  Regression tree will be fit to this data
-      val residualData = for (c <- sampledColumns) yield {
-        val regressionInstances = (for (row <- c.all(rootRegion)) yield {
-          ObservationLabelFeature(rowId = row.rowId, weight = sampleWeights(row.rowId), featureValue = row.featureValue, label = -gradients(row.rowId))
+      val residualData = for ((c, columnId) <- sampledColumns.zipWithIndex) yield {
+        val regressionInstances = mutable.ArraySeq.empty[Observation with Weight with Feature with Label[Double]] ++  
+          (for (row <- c) yield {
+          new Observation with Weight with Feature with Label[Double] {
+            def rowId = row.rowId
+            def weight = data(row.rowId).weight
+            def weight_=(value: Double) = data(row.rowId).weight = value
+            def label = gradients(row.rowId)
+            def featureValue = row.featureValue
+          }
         })
-        new FeatureColumn[Double, ObservationLabelFeature[Double]](regressionInstances, c.columnId)
+        new FeatureColumn[Double, Observation with Weight with Feature with Label[Double]](regressionInstances, columnId)
       }
 
       // Regression fit to the gradient
@@ -94,7 +97,6 @@ class StochasticGradientBoostTrainer[L, T <: Observation](config: StochasticGrad
       ) {
         data(row.rowId).regionId = leaf.regionId
       }
-      for (r <- data) r.weight = sampleWeights(r.rowId)
       val regionIdToDelta = cost.optimalDelta(data)
       for (row <- data) {
         row.score += regionIdToDelta(row.regionId) * config.learningRate

@@ -28,16 +28,6 @@ package object decisionTreeTraining {
         rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => new ObservationFeature(i, r.features(col)) }.force.toIndexedSeq
       }
     }
-    //TODO: Remove dead code
-    /*
-    def toSortedColumns[LabelType, ColumnType <: Observation](implicit featureSelector: RowType => SelectSingleFeature[LabelType, ColumnType with Feature with Label[LabelType]]) = {
-      for (col <- (0 until rows.head.features.length)) yield {
-        val data = rows.view.sortBy(_.features(col)).map(_.selectSingleFeature(col)).force.toIndexedSeq
-        new FeatureColumn[LabelType, ColumnType with Feature with Label[LabelType]](data, col)
-      }
-    }
-    * 
-    */
   }
 
   implicit def addWeightAndLabel(columns: immutable.Seq[Seq[Observation with Feature]]) = new {
@@ -56,30 +46,10 @@ package object decisionTreeTraining {
     }
   }
 
-  trait SelectSingleFeature[L, T] {
-    def selectSingleFeature(col: Int): T
-  }
-
-  // TODO:  Remove dead code
-  /*
-  implicit def singleFeatureConvert[L](row: Observation with RowOfFeatures with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeature(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label)
-  }
-  implicit def singleFeatureConvertScore[L](row: Observation with RowOfFeatures with Score with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Score with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeatureScore(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, score = row.score)
-  }
-  implicit def singleFeatureConvertQuery[L](row: Observation with RowOfFeatures with Query with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Query with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeatureQuery(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId)
-  }
-  implicit def singleFeatureConvertQueryScore[L](row: Observation with RowOfFeatures with Score with Query with Label[L]) = new SelectSingleFeature[L, Observation with Feature with Score with Query with Label[L]] {
-    def selectSingleFeature(col: Int) = new ObservationLabelFeatureQueryScore(rowId = row.rowId, weight = row.weight, featureValue = row.features(col), label = row.label, queryId = row.queryId, score = row.score)
-  }
-  * 
-  */
-
   implicit def ValidateRowIds(data: Seq[Observation]) = new {
     def validate = data.head.rowId == 0 && data.zip(data.drop(1)).forall { case (first, second) => second.rowId == first.rowId + 1 }
   }
+
   implicit def ValidateRowAndQueryIds(data: Seq[Observation with Query with Label[Int]]) = new {
     def validate = data.head.rowId == 0 &&
       data.zip(data.drop(1)).forall {

@@ -19,7 +19,7 @@ import scala.collection._
 
 class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: StochasticGradientBoostTrainConfig,
   cost: CostFunction[L, T],
-  labelData: IndexedSeq[T with Score with Region],
+  data: IndexedSeq[T with Score with Region],
   cols: immutable.Seq[immutable.Seq[Observation with Feature]])
   //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
   {
@@ -29,8 +29,6 @@ class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: Stoch
 
   private var trees = Vector.empty[Model]
   private val rand = new util.Random(config.randomSeed)
-  //TODO: Rename
-  private val data = labelData//(for (row <- labelData) yield row.withScoreAndRegion(score = 0.0, regionId = -1)).toIndexedSeq
   private val columns = cols.par
 
   def model = new AdditiveModel(trees)

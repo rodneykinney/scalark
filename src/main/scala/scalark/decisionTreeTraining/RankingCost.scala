@@ -30,7 +30,10 @@ class RankingCost(maxIterations: Int = 2, memory: Int = 2) extends CostFunction[
 
   def gradient[T1 <: Query with Label[Int] with Weight with Score](docs: Seq[T1]) = {
     val gradients = new mutable.ArraySeq[Double](docs.length)
-    val docsWithId = docs.zipWithIndex.map { case (row, rowId) => ObservationLabelQueryScore(rowId = rowId, label = row.label, queryId = row.queryId, weight = row.weight, score = row.score) }
+    val docsWithId = docs.zipWithIndex.map { 
+      case (row, id) => 
+        new Observation with Label[Int] with Query with Score{val rowId = id; var label = row.label; val queryId = row.queryId; var score = row.score}
+    }
     for ((better, worse) <- documentPairs(docsWithId)) {
       val delta = 1.0 / (1 + math.exp(worse.score - better.score))
       gradients(worse.rowId) -= delta
@@ -54,7 +57,7 @@ class RankingCost(maxIterations: Int = 2, memory: Int = 2) extends CostFunction[
             def queryId = row.queryId
             def weight = row.weight
             def weight_=(value:Double) = ()
-            def label = row.label
+            var label = row.label
             def score = row.score + regionValues(row.regionId)
             def score_=(value:Double) = ()
           }

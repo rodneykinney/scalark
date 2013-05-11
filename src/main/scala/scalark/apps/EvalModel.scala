@@ -32,7 +32,7 @@ object EvalModel {
     val rows = new java.io.File(dataFile).readRows.toList
     val modelJson = io.Source.fromFile(modelFile).getLines.mkString.asJson
     val models = modelJson match {
-      case l:JsArray => modelJson.convertTo[List[Model]]
+      case l: JsArray => modelJson.convertTo[List[Model]]
       case _ => List(modelJson.convertTo[Model])
     }
     val eval = new EvalModel(models, rows)
@@ -46,18 +46,18 @@ object EvalModel {
   }
 }
 
-class EvalModel[T <: Observation with Weight with Label[Boolean] with RowOfFeatures](models: List[Model], rows: Seq[T]) {
+class EvalModel[T <: Label[Boolean] with RowOfFeatures](models: List[Model], rows: Seq[T]) {
   val scoredRowSets = models match {
     case (a: AdditiveModel) :: Nil => {
       var cumulative = new AdditiveModel(Vector.empty[Model])
       for (m <- a.models) yield {
         cumulative = new AdditiveModel(cumulative.models :+ m)
-        val scoredRows = rows.map(r => r.withScore(cumulative.eval(r.features)))
+        val scoredRows = rows.map(r => new Label[Boolean] with Score { var label = r.label; var score = cumulative.eval(r.features) })
         scoredRows
       }
     }
     case _ => {
-      List(rows.map(r => r.withScore(models(1).eval(r.features) - models(0).eval(r.features))))
+      List(rows.map(r => new Label[Boolean] with Score { var label = r.label; var score = (models(1).eval(r.features) - models(0).eval(r.features)) }))
     }
   }
 

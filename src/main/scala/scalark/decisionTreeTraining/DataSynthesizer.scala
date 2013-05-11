@@ -32,7 +32,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     val rows = for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
       val value = model.eval(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
-      ObservationRowLabel(rowId = id, weight = 1.0, features = features, label = value)
+      LabeledRow(features = features, label = value)
     }
     rows
   }
@@ -40,7 +40,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
   def generateData[L](nRows: Int, labelGenerator: (IndexedSeq[Int], Random) => L) = {
     for (id <- (0 until nRows)) yield {
       val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
-      ObservationRowLabel(rowId = id, weight = 1.0, features = features, label = labelGenerator(features, rand))
+      LabeledRow(features = features, label = labelGenerator(features, rand))
     }
   }
 
@@ -57,7 +57,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
         (features, generator.assignLabel(features, rand))
       })
       val queryRows = rows.sortBy(_._2).zipWithIndex.map(t => t match {
-        case ((f, l), i) => ObservationLabelRowQuery(rowId = rowId + i, weight = 1.0, queryId = queryId, label = l, features = f)
+        case ((f, l), i) => LabeledQueryRow(queryId = queryId, label = l, features = f)
       })
       rowId += queryRows.size
       queryRows

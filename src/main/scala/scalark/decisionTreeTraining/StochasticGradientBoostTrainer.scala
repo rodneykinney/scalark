@@ -20,8 +20,7 @@ import scala.collection._
 class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: StochasticGradientBoostTrainConfig,
   cost: CostFunction[L, T],
   data: IndexedSeq[T with Score with Region],
-  cols: immutable.Seq[immutable.Seq[Observation with Feature]])
-  //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
+  cols: immutable.Seq[immutable.Seq[Observation with Feature with Label[Double] with Weight]]) //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
   {
 
   //TODO:  Validation
@@ -58,28 +57,28 @@ class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: Stoch
       val columnSampler = sampler(columns.size, config.featureSampleRate, rand)
       val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnSampler(columnId) } map (_._1)
       // Sample rows
-      if (config.rowSampleRate != 1.0) {
-        for (d <- data) d.weight = 0
+      val weights = 
+      if (config.rowSampleRate == 1.0) {
+        Array.fill(data.size)(1.0)
+      }
+      else {
+        val w = new Array[Double](data.size)
         if (config.sampleRowsWithReplacement) {
-          for (i <- 0 until (data.size * config.rowSampleRate + .5).toInt) data(rand.nextInt(data.size)).weight += 1
+          for (i <- 0 until (data.size * config.rowSampleRate + 0.5).toInt) w(rand.nextInt(data.size)) += 1
         } else {
-          for (d <- data if rand.nextDouble < config.rowSampleRate) d.weight = 1
+          for (i <- 0 until data.size if rand.nextDouble < config.rowSampleRate) w(i) = 1
         }
+        w
       }
       // Compute gradient
       val gradients = cost.gradient(data)
       // Compute residuals.  Regression tree will be fit to this data
       val residualData = for ((c, columnId) <- sampledColumns.zipWithIndex) yield {
-        val regressionInstances = mutable.ArraySeq.empty[Observation with Weight with Feature with Label[Double]] ++  
-          (for (row <- c) yield {
-          new Observation with Weight with Feature with Label[Double] {
-            def rowId = row.rowId
-            def weight = data(row.rowId).weight
-            def weight_=(value: Double) = data(row.rowId).weight = value
-            def label = gradients(row.rowId)
-            def featureValue = row.featureValue
-          }
-        })
+        for (row <- c) {
+          row.weight = weights(row.rowId)
+          row.label = -gradients(row.rowId)
+        }
+        val regressionInstances = mutable.ArraySeq.empty[Observation with Weight with Feature with Label[Double]] ++ c
         new FeatureColumn[Double, Observation with Weight with Feature with Label[Double]](regressionInstances, columnId)
       }
 

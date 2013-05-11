@@ -27,8 +27,8 @@ class TestRegressionTreeTrainer extends FunSuite {
   test("train/test") {
     val db = new DataSynthesizer(2, 0, 1000)
     val allRows = db.regression(1100, 1, 0.1)
-    val (train, test) = allRows.partition(r => r.rowId < 1000)
-    val columns = train.toSortedColumnData.toFeatureColumns((rowId:Int) => allRows(rowId).weight, (rowId:Int) => allRows(rowId).label)
+    val (train, test) = allRows.splitAt(1000)
+    val columns = train.toSortedColumnData.toFeatureColumns((rowId:Int) => 1.0, (rowId:Int) => allRows(rowId).label)
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 500)
     val trainer = new RegressionTreeTrainer(config, columns.par, train.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
@@ -47,10 +47,10 @@ class TestRegressionTreeTrainer extends FunSuite {
   }
 
   test("2-d linear") {
-    var rows = Vector(ObservationRowLabel(0, 1.0, Array(0, 0), 0.))
-    rows = rows :+ ObservationRowLabel(1, 1.0, Array(0, 1), 1.)
-    rows = rows :+ ObservationRowLabel(2, 1.0, Array(1, 0), 2.)
-    rows = rows :+ ObservationRowLabel(3, 1.0, Array(1, 1), 3.)
+    var rows = Vector(LabeledRow(features = Array(0, 0), label = 0.))
+    rows = rows :+ LabeledRow(features = Array(0, 1), label = 1.)
+    rows = rows :+ LabeledRow(features = Array(1, 0), label = 2.)
+    rows = rows :+ LabeledRow(features = Array(1, 1), label = 3.)
 
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 4)
     testTrainer(config, rows)
@@ -64,8 +64,8 @@ class TestRegressionTreeTrainer extends FunSuite {
     testTrainer(config, rows)
   }
 
-  def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[ObservationRowLabel[Double]]) = {
-    val columns = rows.toSortedColumnData.toFeatureColumns((rowId:Int) => rows(rowId).weight, (rowId:Int) => rows(rowId).label )
+  def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[LabeledRow[Double]]) = {
+    val columns = rows.toSortedColumnData.toFeatureColumns((rowId:Int) => 1.0, (rowId:Int) => rows(rowId).label )
     val trainer = new RegressionTreeTrainer(config, columns.par, rows.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val losses = trees.map(t => rows.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)

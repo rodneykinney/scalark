@@ -28,14 +28,14 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter {
   val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
   val partition: TreePartition = new TreePartition(size)
   var column: FeatureColumn[Double, Observation with Weight with Feature with Label[Double]] = _
-  var rows: Seq[ObservationRowLabel[Double]] = _
+  var rows: Seq[LabeledRow[Double]] = _
 
   before {
     init
   }
 
   def init = {
-    rows = (0 until size).map(i => ObservationRowLabel(rowId = i, weight = 1.0, features = Vector(features(i)), label = features(i).toDouble))
+    rows = (0 until size).map(i => LabeledRow(features = Vector(features(i)), label = features(i).toDouble))
     column = rows.toSortedColumnData.toFeatureColumns((rowId:Int) => 1.0, (rowId:Int) => features(rowId).toDouble).head
   }
 

@@ -24,14 +24,14 @@ import org.scalatest.junit._
 class TestStochasticGradientBoostTrainer extends FunSuite {
   test("SGB - toy 1d") {
     val rows = Vector(
-      ObservationRowLabel(0, 1.0, Vector(0), true),
-      ObservationRowLabel(1, 1.0, Vector(1), true),
-      ObservationRowLabel(2, 1.0, Vector(1), false),
-      ObservationRowLabel(3, 1.0, Vector(1), false),
-      ObservationRowLabel(4, 1.0, Vector(2), true))
+      LabeledRow(true, Vector(0)),
+      LabeledRow(true, Vector(1)),
+      LabeledRow(false, Vector(1)),
+      LabeledRow(false, Vector(1)),
+      LabeledRow(true, Vector(2)))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.withScoreAndRegion(0,-1)), rows.toSortedColumnData)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.forTraining), rows.toSortedColumnData)
     val tol = 1.0e-8
 
     var models = Vector.empty[Model]
@@ -57,19 +57,20 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
 
   test("SGB - toy 2d") {
     val rows = Vector(
-      ObservationRowLabelScore(0, 1.0, Vector(0, 0), true, 0.0),
-      ObservationRowLabelScore(1, 1.0, Vector(0, 1), false, 0.0),
-      ObservationRowLabelScore(2, 1.0, Vector(1, 0), true, 0.0),
-      ObservationRowLabelScore(3, 1.0, Vector(1, 1), false, 0.0))
+      LabeledRow(true, Vector(0, 0)),
+      LabeledRow(false, Vector(0, 1)),
+      LabeledRow(true, Vector(1, 0)),
+      LabeledRow(false, Vector(1, 1)))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.withScoreAndRegion(0,-1)), rows.toSortedColumnData)
+    val trainingRows = rows.map(_.forTraining)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, rows.toSortedColumnData)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
     val costs = for (m <- models) yield {
-      for (row <- rows) { row.score = m.eval(row.features) }
-      cost.totalCost(rows)
+      for ((row, tRow) <- rows.zip(trainingRows)) { tRow.score = m.eval(row.features) }
+      cost.totalCost(trainingRows)
     }
     // Losses should decrease monotonically on the training data
     for (i <- (1 until costs.length)) {
@@ -78,16 +79,17 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
   }
 
   test("SGB - 2d") {
-    val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2) map (_.withScore(0.0))
+    val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2)
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.withScoreAndRegion(0,-1)), rows.toSortedColumnData)
+    val trainingRows = rows.map(_.forTraining)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, rows.toSortedColumnData)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
     val costs = for (m <- models) yield {
-      for (row <- rows) { row.score = m.eval(row.features) }
-      cost.totalCost(rows)
+      for ((row, tRow) <- rows.zip(trainingRows)) { tRow.score = m.eval(row.features) }
+      cost.totalCost(trainingRows)
     }
     // Losses should decrease monotonically on the training data
     for (i <- (1 until costs.length)) {

@@ -32,11 +32,11 @@ class TestRanking extends FunSuite with BeforeAndAfter {
   test("TotalCost") {
     val c = new RankingCost()
 
-    val rows = List(ObservationLabelQueryScore(rowId = 0, weight=1.0, label = 0, queryId = 0, score = 0.0),
-      ObservationLabelQueryScore(rowId = 1, weight=1.0, label = 0, queryId = 0, score = 0.0),
-      ObservationLabelQueryScore(rowId = 2, weight=1.0, label = 1, queryId = 0, score = 0.0),
-      ObservationLabelQueryScore(rowId = 3, weight=1.0, label = 0, queryId = 1, score = 0.0),
-      ObservationLabelQueryScore(rowId = 4, weight=1.0, label = 1, queryId = 1, score = 0.0))
+    val rows = List(LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).forTraining,
+      LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).forTraining,
+      LabeledQueryRow(label = 1, queryId = 0, features=Vector.empty[Int]).forTraining,
+      LabeledQueryRow(label = 0, queryId = 1, features=Vector.empty[Int]).forTraining,
+      LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Int]).forTraining)
 
     for (row <- rows) row.score = row.label
     assert(math.abs(c.totalCost(rows) - 3 * math.log(1 + math.exp(-1))) < 1.0e-9)
@@ -46,11 +46,11 @@ class TestRanking extends FunSuite with BeforeAndAfter {
   }
 
   test("Optimal Delta") {
-    val rows = List(new { val rowId: Int = 0; var weight: Double = 1.0; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 1; var weight: Double = 1.0; val label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 2; var weight: Double = 1.0; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 3; var weight: Double = 1.0; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 4; var weight: Double = 1.0; val label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight)
+    val rows = List(new { val rowId: Int = 0; var weight: Double = 1.0; var label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 1; var weight: Double = 1.0; var label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 2; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 3; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 4; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight)
 
     val costs = Range(1, 6).map(new RankingCost(_))
     val x = costs.head.totalCost(rows)
@@ -63,21 +63,22 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     }
   }
   test("Toy 1d") {
-    val rows = IndexedSeq(ObservationLabelRowQuery(rowId = 0, weight=1.0, queryId = 0, label = 0, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 1, weight=1.0, queryId = 0, label = 0, features = Vector(1)),
-      ObservationLabelRowQuery(rowId = 2, weight=1.0, queryId = 0, label = 1, features = Vector(0)),
-      ObservationLabelRowQuery(rowId = 3, weight=1.0, queryId = 0, label = 1, features = Vector(1)),
-      ObservationLabelRowQuery(rowId = 4, weight=1.0, queryId = 0, label = 1, features = Vector(1)))
+    val rows = IndexedSeq(LabeledQueryRow(queryId = 0, label = 0, features = Vector(0)),
+      LabeledQueryRow(queryId = 0, label = 0, features = Vector(1)),
+      LabeledQueryRow(queryId = 0, label = 1, features = Vector(0)),
+      LabeledQueryRow(queryId = 0, label = 1, features = Vector(1)),
+      LabeledQueryRow(queryId = 0, label = 1, features = Vector(1)))
     val columns = rows.toSortedColumnData
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.withScoreAndRegion(0.0, -1)), columns)
+    val trainingRows = rows.map(_.forTraining)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, columns)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     // Cost should decrease monotonically
     val costs = for (m <- models) yield {
-      val scoredRows = for (row <- rows) yield row.withScoreAndRegion(score = m.eval(row.features), regionId = 0)
-      cost.totalCost(scoredRows)
+      for ((row, tRow) <- rows.zip(trainingRows)) tRow.score = m.eval(row.features)
+      cost.totalCost(trainingRows)
     }
     for ((nextCost, cost) <- costs.drop(1).zip(costs)) {
       assert(nextCost <= cost)
@@ -96,15 +97,16 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     val synthesizer = new DataSynthesizer(3, 0, 1000)
     val rows = synthesizer.ranking(nQueries = 100, minResultsPerQuery = 2, maxResultsPerQuery = 20, nClasses = 4, nModesPerClass = 2)
     val columns = rows.toSortedColumnData
-    val config = new StochasticGradientBoostTrainConfig(iterationCount=20,leafCount=4,learningRate=1.0,minLeafSize=1)
+    val config = new StochasticGradientBoostTrainConfig(iterationCount = 20, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.withScoreAndRegion(0,-1)).toIndexedSeq, columns)
+    val trainingRows = rows.map(_.forTraining).toIndexedSeq
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, columns)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     // Cost should decrease monotonically
     val costs = for (m <- models) yield {
-      val scoredRows = for (row <- rows) yield row.withScoreAndRegion(score = m.eval(row.features), regionId = 0)
-      cost.totalCost(scoredRows)
+      for ((row,tRow) <- rows.zip(trainingRows)) tRow.score = m.eval(row.features)
+      cost.totalCost(trainingRows)
     }
     for ((nextCost, cost) <- costs.drop(1).zip(costs)) {
       assert(nextCost <= cost)

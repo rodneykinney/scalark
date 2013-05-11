@@ -19,10 +19,14 @@ trait Query {
   def queryId: Int
 }
 
-case class ObservationLabelQuery[LabelType](val rowId:Int, var weight: Double, val queryId:Int, label:LabelType) extends Observation with Label[LabelType] with Query
-case class ObservationLabelRowQuery[LabelType](val rowId:Int, var weight: Double, val queryId:Int, val features:IndexedSeq[Int], label:LabelType) extends Observation with Label[LabelType] with RowOfFeatures with Query with Weight 
-case class ObservationLabelFeatureQuery[LabelType](val rowId:Int, var weight: Double, val queryId:Int, label:LabelType, featureValue:Int) extends Observation with Label[LabelType] with Query with Feature
-case class ObservationLabelFeatureQueryScore[LabelType](val rowId:Int, var weight: Double, val queryId:Int, label:LabelType, featureValue:Int, var score:Double) extends Observation with Label[LabelType] with Query with Feature with Score
-case class ObservationLabelQueryScore[LabelType](val rowId:Int, var weight: Double, val queryId:Int, label:LabelType, var score:Double) extends Observation with Label[LabelType] with Query with Score with Weight
-case class ObservationLabelQueryScoreRegion[LabelType](val rowId:Int, var weight: Double, val queryId:Int, label:LabelType, var score:Double, var regionId:Int) extends Observation with Label[LabelType] with Query with Score with Region with Weight
+case class ObservationLabelQuery[LabelType](val rowId: Int, var weight: Double, val queryId: Int, var label: LabelType) extends Observation with Label[LabelType] with Query
+case class LabeledQueryRow[LabelType](val queryId: Int, val features: IndexedSeq[Int], var label: LabelType) extends Label[LabelType] with RowOfFeatures with Query {
+  def forTraining = new Query with Label[LabelType] with Weight with Score with Region {
+    val queryId = LabeledQueryRow.this.queryId;
+    var label = LabeledQueryRow.this.label;
+    var weight = 1.0;
+    var score = 0.0;
+    var regionId = -1
+  }
+}
 

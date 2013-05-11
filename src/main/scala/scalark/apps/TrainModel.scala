@@ -18,7 +18,6 @@ import breeze.util.logging._
 import scalark.decisionTreeTraining._
 import scalark.serialization._
 import spray.json._
-import scalark.decisionTreeTraining.ObservationLabelScoreRegion
 
 object TrainModel extends ConfiguredLogging {
 
@@ -32,6 +31,7 @@ object TrainModel extends ConfiguredLogging {
       leafCount = config.leafCount,
       minLeafSize = config.minLeafSize,
       rowSampleRate = config.rowSampleRate,
+      featureSampleRate = config.featureSampleRate,
       sampleRowsWithReplacement = config.withReplacement)
 
     this(trainConfig = sgbConfig, input = config.train, output = config.output)
@@ -41,7 +41,7 @@ object TrainModel extends ConfiguredLogging {
     log.info("Training configuration: " + trainConfig)
     val rows = new java.io.File(input).readRows.toList
     val columns = rows.toSortedColumnData
-    val labels = rows.map(r => ObservationLabelScoreRegion(rowId=r.rowId, weight = 1.0, label = r.label, score = 0.0, regionId = -1)).toIndexedSeq
+    val labels = rows.map(_.forTraining).toIndexedSeq
     log.info("Read " + labels.size + " rows from " + input)
     var iter = 0
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)

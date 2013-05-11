@@ -20,11 +20,19 @@ trait Observation {
 }
 
 trait Weight {
-  var weight: Double
+  def weight: Double
+}
+
+trait MutableWeight extends Weight {
+  def weight_=(value: Double)
 }
 
 trait Label[LabelType] {
-  var label: LabelType
+  def label: LabelType
+}
+
+trait MutableLabel[LabelType] extends Label[LabelType] {
+  def label_=(value: LabelType)
 }
 
 trait Feature {
@@ -36,19 +44,28 @@ trait RowOfFeatures {
 }
 
 trait Score {
-  var score: Double
+  def score: Double
+}
+
+trait MutableScore extends Score {
+  def score_=(value: Double)
 }
 
 trait Region {
-  var regionId: Int
+  def regionId: Int
 }
 
-case class ObservationLabelFeatureWeightScore(val rowId: Int, var label: Double = 0.0, val featureValue: Int, var weight: Double = 1.0, var score: Double = 0.0) extends Observation with Feature with Weight with Score with Label[Double]
-case class LabeledRow[LabelType](var label: LabelType, val features: IndexedSeq[Int]) extends Label[LabelType] with RowOfFeatures {
-  def forTraining = new Label[LabelType] with Weight with Score with Region {
-    var label = LabeledRow.this.label; 
-    var weight = 1.0; 
-    var score = 0.0; 
+trait MutableRegion extends Region {
+  def regionId_=(value: Int)
+}
+
+case class TrainableFeatureValue(val rowId: Int, var label: Double = 0.0, val featureValue: Int, var weight: Double = 1.0) extends Observation with Feature with MutableWeight with MutableLabel[Double]
+
+case class LabeledRow[LabelType](val label: LabelType, val features: IndexedSeq[Int]) extends Label[LabelType] with RowOfFeatures {
+  def asTrainable = new MutableLabel[LabelType] with MutableWeight with MutableScore with MutableRegion {
+    var label = LabeledRow.this.label;
+    var weight = 1.0;
+    var score = 0.0;
     var regionId = -1
-    }
+  }
 }

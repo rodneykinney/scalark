@@ -17,10 +17,10 @@ package scalark.decisionTreeTraining
 
 import scala.collection._
 
-class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: StochasticGradientBoostTrainConfig,
-  cost: CostFunction[L, T],
-  data: IndexedSeq[T with Score with Region],
-  cols: immutable.Seq[immutable.Seq[Observation with Feature with Label[Double] with Weight]]) //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
+class StochasticGradientBoostTrainer[L, T <: Label[L]](config: StochasticGradientBoostTrainConfig,
+  cost: CostFunction[L, T with Weight],
+  data: IndexedSeq[T with MutableWeight with MutableScore with MutableRegion],
+  cols: immutable.Seq[immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]) //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
   {
 
   //TODO:  Validation
@@ -96,7 +96,7 @@ class StochasticGradientBoostTrainer[L, T <: Label[L] with Weight](config: Stoch
       }
       val regionIdToDelta = cost.optimalDelta(data)
       for (row <- data) {
-        row.score += regionIdToDelta(row.regionId) * config.learningRate
+        row.score = row.score + regionIdToDelta(row.regionId) * config.learningRate
       }
       val replacedLeaves = for (l <- leaves) yield {
         val delta = regionIdToDelta(l.regionId)

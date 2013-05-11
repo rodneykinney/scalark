@@ -31,7 +31,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
       LabeledRow(true, Vector(2)))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.forTraining), rows.toSortedColumnData)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.asTrainable), rows.toSortedColumnData)
     val tol = 1.0e-8
 
     var models = Vector.empty[Model]
@@ -63,7 +63,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
       LabeledRow(false, Vector(1, 1)))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainingRows = rows.map(_.forTraining)
+    val trainingRows = rows.map(_.asTrainable)
     val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, rows.toSortedColumnData)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
@@ -82,7 +82,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     val rows = new DataSynthesizer(nDim = 2, minFeatureValue = 0, maxFeatureValue = 1000).binaryClassification(10000, 2)
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss()
-    val trainingRows = rows.map(_.forTraining)
+    val trainingRows = rows.map(_.asTrainable)
     val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, rows.toSortedColumnData)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)

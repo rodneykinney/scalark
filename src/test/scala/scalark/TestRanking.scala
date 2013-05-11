@@ -32,11 +32,11 @@ class TestRanking extends FunSuite with BeforeAndAfter {
   test("TotalCost") {
     val c = new RankingCost()
 
-    val rows = List(LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).forTraining,
-      LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).forTraining,
-      LabeledQueryRow(label = 1, queryId = 0, features=Vector.empty[Int]).forTraining,
-      LabeledQueryRow(label = 0, queryId = 1, features=Vector.empty[Int]).forTraining,
-      LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Int]).forTraining)
+    val rows = List(LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).asTrainable,
+      LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).asTrainable,
+      LabeledQueryRow(label = 1, queryId = 0, features=Vector.empty[Int]).asTrainable,
+      LabeledQueryRow(label = 0, queryId = 1, features=Vector.empty[Int]).asTrainable,
+      LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Int]).asTrainable)
 
     for (row <- rows) row.score = row.label
     assert(math.abs(c.totalCost(rows) - 3 * math.log(1 + math.exp(-1))) < 1.0e-9)
@@ -71,7 +71,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     val columns = rows.toSortedColumnData
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
-    val trainingRows = rows.map(_.forTraining)
+    val trainingRows = rows.map(_.asTrainable)
     val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, columns)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
@@ -99,7 +99,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
     val columns = rows.toSortedColumnData
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 20, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
-    val trainingRows = rows.map(_.forTraining).toIndexedSeq
+    val trainingRows = rows.map(_.asTrainable).toIndexedSeq
     val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, columns)
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)

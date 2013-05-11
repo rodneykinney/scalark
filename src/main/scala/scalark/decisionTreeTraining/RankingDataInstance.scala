@@ -19,11 +19,10 @@ trait Query {
   def queryId: Int
 }
 
-case class ObservationLabelQuery[LabelType](val rowId: Int, var weight: Double, val queryId: Int, var label: LabelType) extends Observation with Label[LabelType] with Query
 case class LabeledQueryRow[LabelType](val queryId: Int, val features: IndexedSeq[Int], var label: LabelType) extends Label[LabelType] with RowOfFeatures with Query {
-  def forTraining = new Query with Label[LabelType] with Weight with Score with Region {
+  def asTrainable = new Query with Label[LabelType] with MutableWeight with MutableScore with MutableRegion {
     val queryId = LabeledQueryRow.this.queryId;
-    var label = LabeledQueryRow.this.label;
+    val label = LabeledQueryRow.this.label;
     var weight = 1.0;
     var score = 0.0;
     var regionId = -1

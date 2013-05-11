@@ -25,7 +25,7 @@ package object decisionTreeTraining {
   implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
     def toSortedColumnData = {
       for (col <- (0 until rows.head.features.length)) yield {
-        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => ObservationLabelFeatureWeightScore(rowId=i, featureValue=r.features(col)) }.force.toIndexedSeq
+        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => TrainableFeatureValue(rowId=i, featureValue=r.features(col)) }.force.toIndexedSeq
       }
     }
   }
@@ -34,7 +34,7 @@ package object decisionTreeTraining {
     def toFeatureColumns[L](weightFinder: Int => Double, labelFinder: Int => L) = {
       for ((col, columnId) <- columns.zipWithIndex) yield {
         val instances = mutable.ArraySeq.empty[Observation with Feature with Weight with Label[L]] ++
-          (for (c <- col) yield new Observation with Feature with Weight with Label[L] {
+          (for (c <- col) yield new Observation with Feature with MutableWeight with MutableLabel[L] {
             def rowId = c.rowId
             def featureValue = c.featureValue
             var weight = weightFinder(c.rowId)

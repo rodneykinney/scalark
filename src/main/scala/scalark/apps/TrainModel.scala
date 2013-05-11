@@ -41,7 +41,7 @@ object TrainModel extends ConfiguredLogging {
     log.info("Training configuration: " + trainConfig)
     val rows = new java.io.File(input).readRows.toList
     val columns = rows.toSortedColumnData
-    val labels = rows.map(_.forTraining).toIndexedSeq
+    val labels = rows.map(_.asTrainable).toIndexedSeq
     log.info("Read " + labels.size + " rows from " + input)
     var iter = 0
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)

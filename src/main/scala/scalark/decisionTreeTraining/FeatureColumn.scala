@@ -21,8 +21,8 @@ import scala.collection._
  * Together with a TreePartition instance, this defines the data instances that exist within a given node of a decision tree
  */
 class FeatureColumn[L, T <: Observation with Weight with Feature](val instances: mutable.IndexedSeq[T], val columnId: Int) {
-  
-  def this(immutableInstances:Seq[T], columnId:Int) = this(mutable.ArraySeq.empty[T] ++ immutableInstances, columnId)
+
+  def this(immutableInstances: Seq[T], columnId: Int) = this(mutable.ArraySeq.empty[T] ++ immutableInstances, columnId)
   def size = instances.size
 
   /** All instances within the given region */
@@ -32,7 +32,7 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
    * A subsequence of data instances within the given region
    */
   def range(node: TreeRegion, start: Int, end: Int): IndexedSeq[T] = {
-    instances.slice(node.start+start, node.start + end)
+    instances.slice(node.start + start, node.start + end)
   }
 
   /**
@@ -41,33 +41,36 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
    * All instances with the same feature value will be included in the batch
    */
   def batch(node: TreeRegion, start: Int, minimumSize: Int): List[T] = {
-    val minSize = math.min(minimumSize, node.size - start)
-    val current = instances(node.start + start)
-    if (current.weight == 0) {
-      minSize match {
-        case 0 => Nil
-        case _ => batch(node, start + 1, minSize)
-      }
-    } else {
-      minSize match {
-        case 0 => Nil
-        case 1 => {
-          val next = {
-            if (node.start + start + 1 < node.start + node.size
-              && instances(node.start + start + 1).featureValue
-              == current.featureValue)
-              batch(node, start + 1, 1)
-            else Nil
-          }
-          current :: next
-        }
-        case _ => {
-          current :: batch(node, start + 1, minSize - 1)
-        }
-      }
-    }
+    var nodes = Vector.empty[T]
+    def appendNode = (node: T) => nodes = nodes :+ node
+    iterateBatch(node, start, minimumSize, appendNode)
+    nodes.toList
   }
 
+  def iterateBatch(node: TreeRegion, start: Int, minimumSize: Int, visitor: T => Any) = {
+    val minSize = math.min(minimumSize, node.size - start)
+    var currentIndex = node.start + start
+    val lastIndex = node.start + node.size
+    var nProcessed = 0
+    while (nProcessed < minSize && currentIndex < lastIndex) {
+      var current = instances(currentIndex)
+      if (current.weight == 0) {
+        currentIndex += 1
+      } else {
+        visitor(current)
+        nProcessed += 1
+        while (currentIndex + 1 < lastIndex
+          && instances(currentIndex + 1).featureValue == current.featureValue) {
+          current = instances(currentIndex + 1)
+          visitor(current)
+          nProcessed += 1
+          currentIndex += 1
+        }
+        currentIndex += 1
+      }
+    }
+    nProcessed
+  }
   /**
    * Repartition the data within the parent node into the two child nodes
    * Maintain sort order of rows within each of the child nodes
@@ -75,7 +78,7 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
   def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, partition: Int => Boolean) = {
     val size = leftChild.size
 
-    val tmp = instances.slice(parent.start,parent.start+parent.size).toIndexedSeq
+    val tmp = instances.slice(parent.start, parent.start + parent.size).toIndexedSeq
 
     var iLeft = leftChild.start; var iRight = rightChild.start
     for (fi <- tmp) {

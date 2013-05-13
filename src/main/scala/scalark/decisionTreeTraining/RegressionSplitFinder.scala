@@ -34,8 +34,7 @@ class RegressionSplitFinder(minLeafSize: Int) {
 
     // Statistics of points in the right split
     stats.reset
-    batchSize = 0
-    for (n <- column.range(node, lCount, node.size)) { batchSize += 1; stats.accumulate(n) }
+    batchSize = column.iterateBatch(node, lCount, node.size, stats.accumulate _)
     var rCount = batchSize
     var rWgt = stats.wgt
     var rSum = stats.sum

@@ -16,36 +16,35 @@ limitations under the License.
 package scalark.decisionTreeTraining
 
 /**
-* Partitions a set of rows into tree nodes
-*/
-class TreePartition(size:Int) {
-  private var nodes = Vector(new TreeRegion(0,0,size))
+ * Partitions a set of rows into tree nodes
+ */
+class TreePartition(size: Int) {
+  private var nodes = Vector(new TreeRegion(0, 0, size))
 
-  def apply(i:Int) = nodes(i)
+  def apply(i: Int) = nodes(i)
 
   def root = apply(0)
 
   def nodeCount = nodes.size
 
-  def left(node:TreeRegion) = apply(node.leftChildId)
-  def right(node:TreeRegion) = apply(node.rightChildId)
+  def left(node: TreeRegion) = apply(node.leftChildId)
+  def right(node: TreeRegion) = apply(node.rightChildId)
 
   /**
-  * Split a parent region into two child regions
-  */
-  def split(parent:TreeRegion, leftSize:Int) = {
+   * Split a parent region into two child regions
+   */
+  def split(parent: TreeRegion, leftSize: Int) = {
     val leftId = nodes.size
     val left = new TreeRegion(leftId, parent.start, leftSize)
     nodes = nodes :+ left
     parent.leftChildId = leftId
 
-    val right = new TreeRegion(leftId+1, parent.start + leftSize, parent.size-leftSize)
+    val right = new TreeRegion(leftId + 1, parent.start + leftSize, parent.size - leftSize)
     nodes = nodes :+ right
     parent.rightChildId = leftId + 1
-    new Tuple2(left,right)
+    (left, right)
   }
 }
-
 
 /**
  * Describes a range of data within an array representing one node of a decision tree

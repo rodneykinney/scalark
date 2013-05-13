@@ -48,47 +48,54 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
   }
 
   def iterateBatch(node: TreeRegion, start: Int, minimumSize: Int, visitor: T => Any) = {
-    val minSize = math.min(minimumSize, node.size - start)
     var currentIndex = node.start + start
-    val lastIndex = node.start + node.size
-    var nProcessed = 0
-    while (nProcessed < minSize && currentIndex < lastIndex) {
+    val endIndex = node.start + node.size
+    val lastIndex = node.start + math.min(start + minimumSize, node.size)
+    while (currentIndex < lastIndex) {
       var current = instances(currentIndex)
       if (current.weight == 0) {
         currentIndex += 1
       } else {
         visitor(current)
-        nProcessed += 1
-        while (currentIndex + 1 < lastIndex
-          && instances(currentIndex + 1).featureValue == current.featureValue) {
-          current = instances(currentIndex + 1)
+        currentIndex += 1
+        while (currentIndex < endIndex
+          && instances(currentIndex).featureValue == current.featureValue) {
+          current = instances(currentIndex)
           visitor(current)
-          nProcessed += 1
           currentIndex += 1
         }
-        currentIndex += 1
       }
     }
-    nProcessed
+    currentIndex - (node.start + start)
   }
   /**
    * Repartition the data within the parent node into the two child nodes
    * Maintain sort order of rows within each of the child nodes
    */
-  def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, partition: Int => Boolean) = {
-    val size = leftChild.size
+  def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, moveToLeft: Int => Boolean) = {
+    val (leftInstances, rightInstances) = instances.slice(parent.start, parent.start + parent.size).partition(i => moveToLeft(i.rowId))
 
-    val tmp = instances.slice(parent.start, parent.start + parent.size).toIndexedSeq
+    for (index <- (0 until leftInstances.size)) instances(leftChild.start + index) = leftInstances(index)
+    for (index <- (0 until rightInstances.size)) instances(rightChild.start + index) = rightInstances(index)
+  }
 
-    var iLeft = leftChild.start; var iRight = rightChild.start
-    for (fi <- tmp) {
-      if (partition(fi.rowId)) {
-        instances(iLeft) = fi
-        iLeft += 1
+  // Seems like this ought to be faster, but it isn't
+  private def repartitionAlternate(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, moveToLeft: Int => Boolean) = {
+    val queue = new mutable.ListBuffer[T]()
+    var index = leftChild.start
+    for (i <- (parent.start until parent.start + parent.size)) {
+      val instance = instances(i)
+      if (moveToLeft(instance.rowId)) {
+        instances(index) = instance
+        index += 1
       } else {
-        instances(iRight) = fi
-        iRight += 1
+        queue += instance
       }
+    }
+    index = rightChild.start
+    for (i <- queue) {
+      instances(index) = i
+      index += 1
     }
   }
 

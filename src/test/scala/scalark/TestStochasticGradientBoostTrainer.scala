@@ -19,9 +19,10 @@ import scalark.decisionTreeTraining._
 import org.scalatest._
 import org.junit.runner._
 import org.scalatest.junit._
+import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestStochasticGradientBoostTrainer extends FunSuite {
+class TestStochasticGradientBoostTrainer extends FunSuite with ShouldMatchers {
   test("SGB - toy 1d") {
     val rows = Vector(
       LabeledRow(true, Vector(0)),
@@ -37,20 +38,20 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     // Mean-value model is log(3/2)
-    rows.foreach(r => assertWithin(models(0).eval(r.features), math.log(1.5), tol))
+    rows.foreach(r => models(0).eval(r.features) should be (math.log(1.5) plusOrMinus tol))
 
     // After one iteration, tree splits the range into three nodes
-    assertWithin(models(1).eval(rows(0).features), math.log(1.5) + 5. / 3, tol)
-    assertWithin(models(1).eval(rows(4).features), math.log(1.5) + 5. / 3, tol)
-    assertWithin(models(1).eval(rows(1).features), math.log(1.5) - 10. / 9, tol)
-    assertWithin(models(1).eval(rows(2).features), math.log(1.5) - 10. / 9, tol)
-    assertWithin(models(1).eval(rows(3).features), math.log(1.5) - 10. / 9, tol)
+    models(1).eval(rows(0).features) should be (math.log(1.5) + 5. / 3 plusOrMinus tol)
+    models(1).eval(rows(4).features) should be (math.log(1.5) + 5. / 3 plusOrMinus tol)
+    models(1).eval(rows(1).features) should be (math.log(1.5) - 10. / 9 plusOrMinus tol)
+    models(1).eval(rows(2).features) should be (math.log(1.5) - 10. / 9 plusOrMinus tol)
+    models(1).eval(rows(3).features) should be (math.log(1.5) - 10. / 9 plusOrMinus tol)
 
     // Middle range should converge to log(0.5)
     var delta = math.abs(models(1).eval(rows(1).features) - math.log(0.5))
     for (i <- (2 to 4)) {
       val newDelta = math.abs(models(i).eval(rows(1).features) - math.log(0.5))
-      assert(newDelta < delta)
+      newDelta should be < (delta)
       delta = newDelta
     }
   }
@@ -74,7 +75,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     }
     // Losses should decrease monotonically on the training data
     for (i <- (1 until costs.length)) {
-      assert(costs(i) < costs(i - 1))
+      costs(i) should be < (costs(i - 1))
     }
   }
 
@@ -93,9 +94,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite {
     }
     // Losses should decrease monotonically on the training data
     for (i <- (1 until costs.length)) {
-      assert(costs(i) < costs(i - 1))
+      costs(i) should be < (costs(i - 1))
     }
   }
-
-  private def assertWithin(value: Double, expected: Double, tolerance: Double) = assert(math.abs(value - expected) < tolerance)
 }

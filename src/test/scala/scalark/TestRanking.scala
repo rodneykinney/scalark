@@ -21,9 +21,10 @@ import scala.util._
 import scala.collection._
 import org.junit.runner._
 import org.scalatest.junit._
+import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestRanking extends FunSuite with BeforeAndAfter {
+class TestRanking extends FunSuite with BeforeAndAfter with ShouldMatchers {
   before {
     breeze.util.logging.ConfiguredLogging.configuration = breeze.config.Configuration.fromMap(immutable.Map(
       "log.level" -> "warn"))
@@ -39,10 +40,10 @@ class TestRanking extends FunSuite with BeforeAndAfter {
       LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Int]).asTrainable)
 
     for (row <- rows) row.score = row.label
-    assert(math.abs(c.totalCost(rows) - 3 * math.log(1 + math.exp(-1))) < 1.0e-9)
+    c.totalCost(rows) should be (3 * math.log(1 + math.exp(-1)) plusOrMinus 1.0e-9)
     for (row <- rows) row.score = 0
-    assert(math.abs(c.totalCost(rows) - 3 * math.log(2)) < 1.0e-9)
-    assert(c.gradient(rows) === Seq(-.5, -.5, 1, -.5, .5))
+    c.totalCost(rows) should be (3 * math.log(2) plusOrMinus 1.0e-9)
+    c.gradient(rows) should equal(Seq(-.5, -.5, 1, -.5, .5))
   }
 
   test("Optimal Delta") {
@@ -54,12 +55,12 @@ class TestRanking extends FunSuite with BeforeAndAfter {
 
     val costs = Range(1, 6).map(new RankingCost(_))
     val x = costs.head.totalCost(rows)
-    assert(math.abs(costs.head.totalCost(rows) - 6 * math.log(2)) < 1.0e-9)
+    costs.head.totalCost(rows) should be (6 * math.log(2) plusOrMinus 1.0e-9)
     val scores = for (cost <- costs) yield { val d = cost.optimalDelta(rows); d(1) - d(0) }
     // With more accurate LBFGS, difference in scores should converge to log(2)
     val target = math.log(2)
     for ((score, previousScore) <- scores.drop(1).zip(scores)) {
-      assert(math.abs(target - score) < math.abs(target - previousScore))
+      math.abs(target - score) should be < (math.abs(target - previousScore))
     }
   }
   test("Toy 1d") {
@@ -81,7 +82,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
       cost.totalCost(trainingRows)
     }
     for ((nextCost, cost) <- costs.drop(1).zip(costs)) {
-      assert(nextCost <= cost)
+      nextCost should be <= (cost)
     }
     // Score difference should converge to log(2)
     val target = math.log(2)
@@ -89,7 +90,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
       m.eval(rows(1).features) - m.eval(rows(0).features)
     }
     for ((nextDiff, diff) <- convergence.drop(1).zip(convergence)) {
-      assert(math.abs(nextDiff - target) <= math.abs(diff - target))
+      math.abs(nextDiff - target) should be <= (math.abs(diff - target))
     }
   }
 
@@ -109,7 +110,7 @@ class TestRanking extends FunSuite with BeforeAndAfter {
       cost.totalCost(trainingRows)
     }
     for ((nextCost, cost) <- costs.drop(1).zip(costs)) {
-      assert(nextCost <= cost)
+      nextCost should be <= (cost)
     }
   }
 }

@@ -20,22 +20,23 @@ import org.scalatest._
 import scala.util._
 import org.junit.runner._
 import org.scalatest.junit._
+import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestRegressionTreeTrainer extends FunSuite {
+class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers {
 
   test("train/test") {
     val db = new DataSynthesizer(2, 0, 1000)
     val allRows = db.regression(1100, 1, 0.1)
     val (train, test) = allRows.splitAt(1000)
-    val columns = train.toSortedColumnData.toFeatureColumns((rowId:Int) => 1.0, (rowId:Int) => allRows(rowId).label)
+    val columns = train.toSortedColumnData.toFeatureColumns((rowId: Int) => 1.0, (rowId: Int) => allRows(rowId).label)
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 500)
     val trainer = new RegressionTreeTrainer(config, columns.par, train.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val trainError = trees.map(t => train.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
     val testError = trees.map(t => test.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
-    assert(trainError.min === trainError.last)
-    assert(testError.min < testError.last)
+    trainError.min should be(trainError.last)
+    testError.min should be < (testError.last)
   }
 
   test("2-d single gaussian") {
@@ -65,15 +66,15 @@ class TestRegressionTreeTrainer extends FunSuite {
   }
 
   def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[LabeledRow[Double]]) = {
-    val columns = rows.toSortedColumnData.toFeatureColumns((rowId:Int) => 1.0, (rowId:Int) => rows(rowId).label )
+    val columns = rows.toSortedColumnData.toFeatureColumns((rowId: Int) => 1.0, (rowId: Int) => rows(rowId).label)
     val trainer = new RegressionTreeTrainer(config, columns.par, rows.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val losses = trees.map(t => rows.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
     for (iter <- (1 until config.leafCount)) {
       var delta = losses(iter - 1) - losses(iter)
-      assert(delta >= 0)
+      delta should be >= (0.0)
       if (trees(iter)._1 != null)
-        assert(math.abs(delta - trees(iter)._1.gain) < 1.0e-5)
+        delta should be (trees(iter)._1.gain plusOrMinus 1.0e-5)
     }
   }
 }

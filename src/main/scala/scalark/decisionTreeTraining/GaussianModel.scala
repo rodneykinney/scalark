@@ -18,7 +18,7 @@ package scalark.decisionTreeTraining
 /** Gaussian model that operates on a subset of features */
 case class GaussianModel(val means: IndexedSeq[Double], val variance: IndexedSeq[IndexedSeq[Double]], val featureIndices: IndexedSeq[Int], val range: Int) extends Model {
   private val scale = 1.0 / math.pow(range, 2)
-  def eval(features: Seq[Int]) = {
+  def eval(features: Seq[Double]) = {
     var sum = 0.0
     for (i <- (0 until variance.size)) {
       val projection = variance(i) zip (0 until means.length) map { case (v, j) => v * (features(featureIndices(j)) - means(j) * range) }

@@ -18,12 +18,12 @@ package scalark.decisionTreeTraining
 import scala.util._
 
 trait Model {
-  def eval(features: Seq[Int]): Double
+  def eval(features: Seq[Double]): Double
 }
 
 /** A model that is the sum of other models */
 case class AdditiveModel(val models: Seq[Model]) extends Model {
-  def eval(features: Seq[Int]) = models.map(_.eval(features)).sum
+  def eval(features: Seq[Double]) = models.map(_.eval(features)).sum
 }
 
 /**
@@ -31,7 +31,7 @@ case class AdditiveModel(val models: Seq[Model]) extends Model {
  * Each model produces the relative probability of that class
  */
 case class GenerativeModel[L](val models: Seq[Model], labelConvert: Int => L) {
-  def assignLabel(features: Seq[Int], rand: Random) = {
+  def assignLabel(features: Seq[Double], rand: Random) = {
     val rawWeights = models map (_.eval(features))
     assert(rawWeights.forall(_ >= 0))
     val totalWeight = rawWeights.sum
@@ -47,7 +47,7 @@ case class GenerativeModel[L](val models: Seq[Model], labelConvert: Int => L) {
  * given a set of models producing the relative probability of that class
  */
 case class MaximumLikelihoodModel[L](val models: Seq[Model], labelConvert: Int => L) {
-  def assignLabel(features: Seq[Int]) = {
+  def assignLabel(features: Seq[Double]) = {
     val weights = models map (_.eval(features))
     labelConvert(weights.zipWithIndex.maxBy(_._1)._2)
   }

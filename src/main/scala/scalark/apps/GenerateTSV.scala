@@ -53,7 +53,7 @@ object GenerateTSV {
     val synthesizer = new DataSynthesizer(nDim, minFeatureValue = minFeatureValue, maxFeatureValue = maxFeatureValue, seed = seed)
     val genModel = new GenerativeModel(models, labelCreator)
     val optimalModel = new MaximumLikelihoodModel(models, labelCreator)
-    val labelGenerator = (features: IndexedSeq[Int], rand:util.Random) => {
+    val labelGenerator = (features: IndexedSeq[Double], rand:util.Random) => {
       if (rand.nextDouble < predictability) {
         optimalModel.assignLabel(features)
       }

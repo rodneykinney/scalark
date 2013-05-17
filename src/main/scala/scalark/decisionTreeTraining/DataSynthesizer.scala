@@ -30,16 +30,16 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
   def regression(nRows: Int, nModes: Int, noise: Double) = {
     val model = gaussianMixtureModel(nModes)
     val rows = for (id <- (0 until nRows)) yield {
-      val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
+      val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range).toDouble
       val value = model.eval(features) * (1.0 - .5 * noise + noise * rand.nextDouble)
       LabeledRow(features = features, label = value)
     }
     rows
   }
 
-  def generateData[L](nRows: Int, labelGenerator: (IndexedSeq[Int], Random) => L) = {
+  def generateData[L](nRows: Int, labelGenerator: (IndexedSeq[Double], Random) => L) = {
     for (id <- (0 until nRows)) yield {
-      val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
+      val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range).toDouble
       LabeledRow(features = features, label = labelGenerator(features, rand))
     }
   }
@@ -53,7 +53,7 @@ class DataSynthesizer(nDim: Int, minFeatureValue: Int, maxFeatureValue: Int, see
     var rowId = 0
     (0 until nQueries) flatMap (queryId => {
       val rows = (for (i <- (0 until (minResultsPerQuery + rand.nextInt(maxResultsPerQuery - minResultsPerQuery)))) yield {
-        val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range)
+        val features = for (d <- (0 until nDim)) yield minFeatureValue + rand.nextInt(range).toDouble
         (features, generator.assignLabel(features, rand))
       })
       val queryRows = rows.sortBy(_._2).zipWithIndex.map(t => t match {

@@ -31,11 +31,11 @@ class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
 
   def Root = nodesByIndex(0)
 
-  def eval(features: Seq[Int]) = eval(features, Root).value
+  def eval(features: Seq[Double]) = eval(features, Root).value
 
-  def regionId(features: Seq[Int]) = eval(features, Root).regionId
+  def regionId(features: Seq[Double]) = eval(features, Root).regionId
 
-  private def eval(features: Seq[Int], node: DecisionTreeNode): DecisionTreeLeaf = node match {
+  private def eval(features: Seq[Double], node: DecisionTreeNode): DecisionTreeLeaf = node match {
     case leaf: DecisionTreeLeaf => leaf
     case split: DecisionTreeSplit =>
       if (features(split.split.columnId) <= split.split.threshold) eval(features, nodesByIndex(split.leftId))
@@ -50,5 +50,5 @@ class DecisionTreeModel(val nodes: Seq[DecisionTreeNode]) extends Model {
   def leafCount = nodes.count(_.isLeaf)
 }
 
-case class Split(columnId: Int, threshold: Int)
+case class Split(columnId: Int, threshold: Double)
 

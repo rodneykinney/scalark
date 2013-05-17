@@ -80,7 +80,7 @@ package object decisionTreeTraining {
       var rowId = -1
       for (line <- lines.drop(1)) yield {
         val fields = line.split('\t')
-        val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toInt)
+        val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toDouble)
         rowId += 1
         LabeledRow(label = fields(labelIndex).toBoolean, features = features)
       }

@@ -76,7 +76,7 @@ class RegressionSplitFinder(minLeafSize: Int) {
   class Stats[T <: Label[Double] with Weight with Feature] {
     var wgt = 0.0
     var sum = 0.0
-    var lastFeatureValue = 0
+    var lastFeatureValue = 0.0
     def accumulate(f: T) = {
       wgt += f.weight
       sum += f.label * f.weight

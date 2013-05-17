@@ -32,7 +32,7 @@ class LogLogisticLoss extends OrthogonalCostFunction[Boolean, Label[Boolean] wit
   }
 
   def optimalConstant[T <: Label[Boolean] with Weight](labels: Seq[T]) = {
-    val (nTotal, nPositive) = ((0.0, 0.0) /: labels) { (t, l) => if (l.label) (t._1 + l.weight, t._2 + 1) else (t._1 + l.weight, t._2) }
+    val (nTotal, nPositive) = ((0.0, 0.0) /: labels) { (t, l) => if (l.label) (t._1 + l.weight, t._2 + l.weight) else (t._1 + l.weight, t._2) }
     if (nPositive == 0 || nPositive == nTotal)
       math.log((nPositive + 1) / (nTotal + 1))
     else

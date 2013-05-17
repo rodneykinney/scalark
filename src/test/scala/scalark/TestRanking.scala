@@ -33,11 +33,11 @@ class TestRanking extends FunSuite with BeforeAndAfter with ShouldMatchers {
   test("TotalCost") {
     val c = new RankingCost()
 
-    val rows = List(LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).asTrainable,
-      LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Int]).asTrainable,
-      LabeledQueryRow(label = 1, queryId = 0, features=Vector.empty[Int]).asTrainable,
-      LabeledQueryRow(label = 0, queryId = 1, features=Vector.empty[Int]).asTrainable,
-      LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Int]).asTrainable)
+    val rows = List(LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Double]).asTrainable,
+      LabeledQueryRow(label = 0, queryId = 0, features=Vector.empty[Double]).asTrainable,
+      LabeledQueryRow(label = 1, queryId = 0, features=Vector.empty[Double]).asTrainable,
+      LabeledQueryRow(label = 0, queryId = 1, features=Vector.empty[Double]).asTrainable,
+      LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Double]).asTrainable)
 
     for (row <- rows) row.score = row.label
     c.totalCost(rows) should be (3 * math.log(1 + math.exp(-1)) plusOrMinus 1.0e-9)

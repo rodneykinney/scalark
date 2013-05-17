@@ -19,7 +19,7 @@ trait Query {
   def queryId: Int
 }
 
-case class LabeledQueryRow[LabelType](val queryId: Int, val features: IndexedSeq[Int], var label: LabelType) extends Label[LabelType] with RowOfFeatures with Query {
+case class LabeledQueryRow[LabelType](val queryId: Int, val features: IndexedSeq[Double], var label: LabelType) extends Label[LabelType] with RowOfFeatures with Query {
   def asTrainable = new Query with Label[LabelType] with MutableWeight with MutableScore with MutableRegion {
     val queryId = LabeledQueryRow.this.queryId;
     val label = LabeledQueryRow.this.label;

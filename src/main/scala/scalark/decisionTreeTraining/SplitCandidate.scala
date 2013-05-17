@@ -18,7 +18,7 @@ package scalark.decisionTreeTraining
 class SplitCandidate(
   val regionId: Int,
   _columnId: Int,
-  _threshold: Int,
+  _threshold: Double,
   val gain: Double,
   val leftValue: Double,
   val rightValue: Double) extends Split(_columnId, _threshold) {}

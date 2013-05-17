@@ -21,3 +21,5 @@ libraryDependencies += "junit" % "junit" % "4.11" % "test"
 libraryDependencies += "org.scalanlp" %% "breeze-learn" % "0.1"
 
 libraryDependencies += "org.scalanlp" %% "breeze-viz" % "0.1"
+
+libraryDependencies += "org.spark-project" %% "spark-core" % "0.7.0"

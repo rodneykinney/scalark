@@ -25,22 +25,17 @@ package object decisionTreeTraining {
   implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
     def toSortedColumnData = {
       for (col <- (0 until rows.head.features.length)) yield {
-        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => TrainableFeatureValue(rowId=i, featureValue=r.features(col)) }.force.toIndexedSeq
+        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => TrainableFeatureValue(rowId = i, featureValue = r.features(col)) }.force.toIndexedSeq
       }
     }
   }
 
-  implicit def addWeightAndLabel(columns: immutable.Seq[Seq[Observation with Feature]]) = new {
-    def toFeatureColumns[L](weightFinder: Int => Double, labelFinder: Int => L) = {
+  //TODO: Cleanup
+  implicit def addWeightAndLabel(columns: immutable.Seq[Seq[TrainableFeatureValue]]) = new {
+    def toFeatureColumns(weightFinder: Int => Double, labelFinder: Int => Double) = {
       for ((col, columnId) <- columns.zipWithIndex) yield {
-        val instances = mutable.ArraySeq.empty[Observation with Feature with Weight with Label[L]] ++
-          (for (c <- col) yield new Observation with Feature with MutableWeight with MutableLabel[L] {
-            def rowId = c.rowId
-            def featureValue = c.featureValue
-            var weight = weightFinder(c.rowId)
-            var label = labelFinder(c.rowId)
-          })
-        new FeatureColumn[L, Observation with Feature with Weight with Label[L]](instances, columnId)
+        col.foreach{c => c.weight = weightFinder(c.rowId) ; c.label = labelFinder(c.rowId)}
+        new FeatureColumn[Double, TrainableFeatureValue](col, columnId)
       }
     }
   }

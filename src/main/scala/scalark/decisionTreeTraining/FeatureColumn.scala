@@ -20,6 +20,7 @@ import scala.collection._
  *
  * Together with a TreePartition instance, this defines the data instances that exist within a given node of a decision tree
  */
+@serializable
 class FeatureColumn[L, T <: Observation with Weight with Feature](val instances: mutable.IndexedSeq[T], val columnId: Int) {
 
   def this(immutableInstances: Seq[T], columnId: Int) = this(mutable.ArraySeq.empty[T] ++ immutableInstances, columnId)

@@ -15,6 +15,9 @@ limitations under the License.
 */
 package scalark.decisionTreeTraining
 
+/**
+ * A candidate split (feature and threshold) for a decision tree
+ */
 class SplitCandidate(
   val regionId: Int,
   _columnId: Int,

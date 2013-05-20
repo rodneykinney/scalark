@@ -44,7 +44,7 @@ object TrainModel extends ConfiguredLogging {
     val labels = rows.map(_.asTrainable).toIndexedSeq
     log.info("Read " + labels.size + " rows from " + input)
     var iter = 0
-    val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)
+    val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, new LocalColumnOperationsFactory(columns.par))
     val start = System.currentTimeMillis()
     val trees = trainer.train({ log.info("Iteration #" + iter); iter += 1})
     val end = System.currentTimeMillis()

@@ -49,10 +49,8 @@ class TreePartition(size: Int) {
 /**
  * Describes a range of data within an array representing one node of a decision tree
  */
-class TreeRegion(val regionId: Int, val start: Int, val size: Int) {
+@serializable
+case class TreeRegion(val regionId: Int, val start: Int, val size: Int) {
   var leftChildId: Int = -1
   var rightChildId: Int = -1
-
-  override def toString = "Region[id=" + regionId + ",size=" + size + "]"
-
 }

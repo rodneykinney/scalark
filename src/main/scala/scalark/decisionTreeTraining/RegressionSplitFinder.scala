@@ -18,6 +18,7 @@ package scalark.decisionTreeTraining
 /**
  * Finds best threshold at which to split a feature, based on mean-squared error
  */
+@serializable
 class RegressionSplitFinder(minLeafSize: Int) {
 
   /**

@@ -21,21 +21,24 @@ import org.junit.runner._
 import org.scalatest.junit._
 import scala.collection._
 import org.scalatest.matchers.ShouldMatchers
+import spark.SparkContext
 
 @RunWith(classOf[JUnitRunner])
-class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with ShouldMatchers {
+class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with ShouldMatchers with SparkTestUtils {
   val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
   val partition: TreePartition = new TreePartition(features.size)
   var column: FeatureColumn[Double, Observation with Weight with Feature with Label[Double]] = _
   var rows: Seq[LabeledRow[Double]] = _
-  
+
   before {
     init
   }
 
   def init = {
-    rows = (0 until features.size).map(i => LabeledRow(features = Vector(features(i)), label = features(i).toDouble))
-    column = rows.toSortedColumnData.toFeatureColumns((rowId:Int) => 1.0, (rowId:Int) => features(rowId).toDouble).head
+    rows = features.map(f => LabeledRow(features = Vector(f), label = f.toDouble))
+    val col = rows.toSortedColumnData.head
+    col.foreach(row => row.label = features(row.rowId))
+    column = new FeatureColumn(col, 0)
   }
 
   test("Node Range") {
@@ -98,10 +101,14 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with Should
     split.threshold should be(6)
   }
 
-  test("RegressionTreeTrainer") {
+  sparkTest("RegressionTreeTrainer") {
     init
 
-    var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), Vector(column).par, rows.size)
+    val columns = sc.parallelize(Vector(column))
+    val columnOps = new DistributedColumnOperations(columns, sc)
+    //TODO:  Remove
+    println("Initialized columns")
+    var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), columnOps, rows.size)
 
     val model1 = trainer.model
     val loss1 = rows.map(r => math.pow(r.label - model1.eval(r.features), 2)).sum
@@ -109,8 +116,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with Should
     val split = trainer.nextIteration()
     val model2 = trainer.model
     val loss2 = rows.map(r => math.pow(r.label - model2.eval(r.features), 2)).sum
-    assert(math.abs(loss2 + split.gain - loss1) < 1.0e-5)
-
+    loss2 + split.gain should be(loss1 plusOrMinus 1.0e-5)
   }
 
 }

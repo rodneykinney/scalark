@@ -73,7 +73,7 @@ class TestRanking extends FunSuite with BeforeAndAfter with ShouldMatchers {
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 2, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
     val trainingRows = rows.map(_.asTrainable)
-    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, columns)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, new LocalColumnOperationsFactory(columns.par))
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     // Cost should decrease monotonically
@@ -101,7 +101,7 @@ class TestRanking extends FunSuite with BeforeAndAfter with ShouldMatchers {
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 20, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new RankingCost()
     val trainingRows = rows.map(_.asTrainable).toIndexedSeq
-    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, columns)
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, new LocalColumnOperationsFactory(columns.par))
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     // Cost should decrease monotonically

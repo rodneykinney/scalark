@@ -59,6 +59,7 @@ trait MutableRegion extends Region {
   def regionId_=(value: Int)
 }
 
+@serializable
 case class TrainableFeatureValue(val rowId: Int, var label: Double = 0.0, val featureValue: Int, var weight: Double = 1.0) extends Observation with Feature with MutableWeight with MutableLabel[Double]
 
 case class LabeledRow[LabelType](val label: LabelType, val features: IndexedSeq[Int]) extends Label[LabelType] with RowOfFeatures {

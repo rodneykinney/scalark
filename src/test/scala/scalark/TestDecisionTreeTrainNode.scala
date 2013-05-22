@@ -101,13 +101,27 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with Should
     split.threshold should be(6)
   }
 
-  sparkTest("RegressionTreeTrainer") {
+  test("RegressionTreeTrainer") {
+    init
+
+    val columns = Vector(column).par
+    val columnOps = new LocalColumnOperations(columns)
+    var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), columnOps, rows.size)
+
+    val model1 = trainer.model
+    val loss1 = rows.map(r => math.pow(r.label - model1.eval(r.features), 2)).sum
+
+    val split = trainer.nextIteration()
+    val model2 = trainer.model
+    val loss2 = rows.map(r => math.pow(r.label - model2.eval(r.features), 2)).sum
+    loss2 + split.gain should be(loss1 plusOrMinus 1.0e-5)
+  }
+
+  sparkTest("RegressionTreeTrainer distributed") {
     init
 
     val columns = sc.parallelize(Vector(column))
-    val columnOps = new DistributedColumnOperations(columns, sc)
-    //TODO:  Remove
-    println("Initialized columns")
+    val columnOps = new DistributedColumnOperations(columns)
     var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), columnOps, rows.size)
 
     val model1 = trainer.model

@@ -20,8 +20,7 @@ import scala.collection._
  *
  * Together with a TreePartition instance, this defines the data instances that exist within a given node of a decision tree
  */
-@serializable
-class FeatureColumn[L, T <: Observation with Weight with Feature](val instances: mutable.IndexedSeq[T], val columnId: Int) {
+class FeatureColumn[L, T <: Observation with Weight with Feature](val instances: mutable.IndexedSeq[T], val columnId: Int) extends Serializable {
 
   def this(immutableInstances: Seq[T], columnId: Int) = this(mutable.ArraySeq.empty[T] ++ immutableInstances, columnId)
   def size = instances.size
@@ -74,10 +73,21 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
    * Maintain sort order of rows within each of the child nodes
    */
   def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, moveToLeft: Int => Boolean) = {
-    val (leftInstances, rightInstances) = instances.slice(parent.start, parent.start + parent.size).partition(i => moveToLeft(i.rowId))
+    val (leftInstances, rightInstances) = all(parent).partition(i => moveToLeft(i.rowId))
+    //TODO: Cleanup
+    if (leftInstances.size != leftChild.size)
+      println("Left mismatch")
+    if (rightInstances.size != rightChild.size)
+      println("Right mismatch")
 
     for (index <- (0 until leftInstances.size)) instances(leftChild.start + index) = leftInstances(index)
-    for (index <- (0 until rightInstances.size)) instances(rightChild.start + index) = rightInstances(index)
+    //TODO: Cleanup
+    for (index <- (0 until rightInstances.size)) {
+      if (rightChild.start + index == 10000)
+        println("Something's wrong")
+      instances(rightChild.start + index) = rightInstances(index)
+    }
+    this
   }
 
   // Seems like this ought to be faster, but it isn't
@@ -98,6 +108,67 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
       instances(index) = i
       index += 1
     }
+  }
+
+}
+
+class FeatureColumn2[L, T <: Observation with Weight with Feature](regionContents: Map[Int, IndexedSeq[T]], columnId: Int) extends Serializable {
+
+  def this(instances: IndexedSeq[T], columnId: Int) = this(Map(0 -> instances), columnId)
+  def size = regionContents.values.map(_.size).sum
+
+  /** All instances within the given region */
+  def all(node: TreeRegion): Iterable[T] = regionContents(node.regionId)
+
+  /**
+   * A subsequence of data instances within the given region
+   */
+  def range(node: TreeRegion, start: Int, end: Int) = {
+    regionContents(node.regionId).slice(start, end)
+  }
+
+  /**
+   * Retrieve a batch of instances from the given starting point
+   * At least minimumSize instances (with weight > 0) will be returned, if available
+   * All instances with the same feature value will be included in the batch
+   */
+  def batch(node: TreeRegion, start: Int, minimumSize: Int): List[T] = {
+    var nodes = Vector.empty[T]
+    def appendNode = (node: T) => nodes = nodes :+ node
+    iterateBatch(node, start, minimumSize, appendNode)
+    nodes.toList
+  }
+
+  def iterateBatch(node: TreeRegion, start: Int, minimumSize: Int, visitor: T => Any) = {
+    val instances = regionContents(node.regionId)
+    var currentIndex = start
+    val endIndex = node.size
+    val lastIndex = math.min(start + minimumSize, node.size)
+    while (currentIndex < lastIndex) {
+      var current = instances(currentIndex)
+      if (current.weight == 0) {
+        currentIndex += 1
+      } else {
+        visitor(current)
+        currentIndex += 1
+        while (currentIndex < endIndex
+          && instances(currentIndex).featureValue == current.featureValue) {
+          current = instances(currentIndex)
+          visitor(current)
+          currentIndex += 1
+        }
+      }
+    }
+    currentIndex - start
+  }
+  /**
+   * Repartition the data within the parent node into the two child nodes
+   * Maintain sort order of rows within each of the child nodes
+   */
+  def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, moveToLeft: Int => Boolean) = {
+    val (leftInstances, rightInstances) = all(parent).partition(i => moveToLeft(i.rowId))
+    val newMap = regionContents - parent.regionId + ((leftChild.regionId, leftInstances.toIndexedSeq), (rightChild.regionId, rightInstances.toIndexedSeq))
+    new FeatureColumn2(newMap, columnId)
   }
 
 }

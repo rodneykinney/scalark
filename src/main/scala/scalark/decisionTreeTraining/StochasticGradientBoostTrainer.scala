@@ -79,8 +79,6 @@ class StochasticGradientBoostTrainer[L, T <: Label[L]](
       for (
         leaf <- leaves;
         id <- colOps.selectIdsByFeature(0, (feature: Int) => true, regressionTrainer.partition(leaf.regionId))
-      //TODO: Cleanup
-      //        row <- residualData.head.all(regressionTrainer.partition(leaf.regionId))
       ) {
         data(id).regionId = leaf.regionId
       }

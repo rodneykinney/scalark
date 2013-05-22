@@ -57,11 +57,15 @@ class LocalColumnOperations[T <: Observation with Weight with Feature with Label
   }
 
   def repartitionAll(parentRegion: TreeRegion, leftChildRegion: TreeRegion, rightChildRegion: TreeRegion, leftIds: Int => Boolean) = {
-    columns.foreach(_.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds))
+    //TODO: Cleanup
+    for (col <- columns) {
+      require(col.all(parentRegion).filter(r => leftIds(r.rowId)).size == leftChildRegion.size, "Wrong size")
+      col.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds)
+    }
   }
 
   def weightedAverage(region: TreeRegion) = {
-    val (total, sum) = ((0.0, 0.0) /: columns.seq.first.all(region)) { case ((w, s), fi) => (w + fi.weight, s + fi.label) }
+    val (total, sum) = ((0.0, 0.0) /: columns.seq.head.all(region)) { case ((w, s), fi) => (w + fi.weight, s + fi.label) }
     sum / total
   }
 
@@ -84,20 +88,28 @@ class LocalColumnOperationsFactory(columns: parallel.ParSeq[immutable.Seq[Observ
 }
 
 /** Distributed training via Spark */
-class DistributedColumnOperations[T <: Observation with Weight with Feature with Label[Double]](val columns: RDD[FeatureColumn[Double, T]], sc: SparkContext) extends ColumnOperations {
+class DistributedColumnOperations[T <: Observation with Weight with Feature with Label[Double]](var columns: RDD[FeatureColumn[Double, T]]) extends ColumnOperations {
   def getSplitCandidates(region: TreeRegion, splitFinder: RegressionSplitFinder) = {
     val sf = splitFinder
+    val counts = columns.map(col => col.size).collect
     columns.map(col => sf.findSplitCandidate(col, region)).collect { case Some(c) => c }.collect
   }
   def selectIdsByFeature(columnId: Int, featureFilter: Int => Boolean, region: TreeRegion) = {
     columns.filter(_.columnId == columnId).
       map(column => column.
-        range(region, 0, region.size).
+        all(region).
         filter(row => featureFilter(row.featureValue)).
         map(_.rowId).toSet).collect.head
   }
   def repartitionAll(parentRegion: TreeRegion, leftChildRegion: TreeRegion, rightChildRegion: TreeRegion, leftIds: Int => Boolean) = {
-    columns.foreach(_.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds))
+    //TODO: Cleanup
+    columns = for (col <- columns) yield {
+      println("")
+      require(col.all(parentRegion).filter(r => leftIds(r.rowId)).size == leftChildRegion.size, "Wrong size")
+      col.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds)
+      require(col.all(leftChildRegion).find(r => !leftIds(r.rowId)).isEmpty,"Partitioning didn't work")
+      col
+    }
   }
   def weightedAverage(region: TreeRegion) = {
     val (total, sum) = ((0.0, 0.0) /: columns.first.all(region)) { case ((w, s), fi) => (w + fi.weight, s + fi.label) }

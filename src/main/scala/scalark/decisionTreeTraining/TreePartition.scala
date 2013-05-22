@@ -49,7 +49,6 @@ class TreePartition(size: Int) {
 /**
  * Describes a range of data within an array representing one node of a decision tree
  */
-@serializable
 case class TreeRegion(val regionId: Int, val start: Int, val size: Int) {
   var leftChildId: Int = -1
   var rightChildId: Int = -1

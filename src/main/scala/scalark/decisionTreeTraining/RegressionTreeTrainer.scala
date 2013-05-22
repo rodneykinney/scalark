@@ -30,10 +30,6 @@ class RegressionTreeTrainer[T <: Observation with Weight with Feature with Label
   val splitFinder = new RegressionSplitFinder(config.minLeafSize)
   
   private var _model: DecisionTreeModel = {
-    //TODO:  Cleanup
-//    val (total, sum) = ((0.0, 0.0) /: columns.first.all(partition.root)) { (t, fi) => (t._1 + 1, t._2 + fi.label) }
-//    val mean = sum / total
-//    new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
     new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, columnOps.weightedAverage(partition.root))))
   }
 
@@ -49,9 +45,6 @@ class RegressionTreeTrainer[T <: Observation with Weight with Feature with Label
   def nextIteration(): SplitCandidate = {
     if (candidates == null) {
       val initialCandidates = columnOps.getSplitCandidates(partition.root, splitFinder)
-      //TODO: Cleanup
-//      val split = new Splitter[T](splitter, partition.root)
-//      val initialCandidates = columns.map(split(_)).collect { case Some(c) => c }.collect
       candidates = new PriorityQueue[SplitCandidate]()(Ordering[Double].on[SplitCandidate](_.gain)) ++ initialCandidates
     }
     if (candidates.size > 0) {
@@ -61,20 +54,13 @@ class RegressionTreeTrainer[T <: Observation with Weight with Feature with Label
       candidates = keep
 
       val regionToSplit = partition(bestCandidate.regionId)
-      //TODO: cleanup
-//      val leftIds = columns.filter(_.columnId == bestCandidate.columnId).map(column =>
-//        column.range(regionToSplit, 0, regionToSplit.size).filter(_.featureValue <= bestCandidate.threshold).map(_.rowId).toSet).collect.first
       val leftIds = columnOps.selectIdsByFeature(bestCandidate.columnId, (feature:Int) => feature <= bestCandidate.threshold, regionToSplit)
       val (leftChildRegion, rightChildRegion) = partition.split(regionToSplit, leftIds.size)
-//      columns.foreach(_.repartition(regionToSplit, leftChildRegion, rightChildRegion, leftIds))
+      //TODO: Cleanup
+      if (leftChildRegion.size != leftIds.size || rightChildRegion.size != regionToSplit.size - leftIds.size)
+        println("Sizes don't match")
       columnOps.repartitionAll(regionToSplit, leftChildRegion, rightChildRegion, leftIds)
-      //TODO: Remove
-//      println("In between")
-//      val splitLeft = new Splitter[T](splitter, leftChildRegion)
-//      val splitRight = new Splitter[T](splitter, rightChildRegion)
-//
-//      candidates = candidates ++ columns.map(splitLeft(_)).collect { case Some(c) => c }.collect
-//      candidates = candidates ++ columns.map(splitRight(_)).collect { case Some(c) => c }.collect
+
       candidates = candidates ++ columnOps.getSplitCandidates(leftChildRegion, splitFinder)
       candidates = candidates ++ columnOps.getSplitCandidates(rightChildRegion, splitFinder)
 
@@ -87,9 +73,4 @@ class RegressionTreeTrainer[T <: Observation with Weight with Feature with Label
     } else
       null
   }
-}
-
-@serializable
-class Splitter[T <: Observation with Weight with Feature with Label[Double]](val splitter: RegressionSplitFinder, val region: TreeRegion) {
-  def apply(col: FeatureColumn[Double, T]) = splitter.findSplitCandidate(col, region)
 }

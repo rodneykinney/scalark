@@ -30,7 +30,6 @@ package object decisionTreeTraining {
     }
   }
 
-  //TODO: Cleanup
   implicit def addWeightAndLabel(columns: immutable.Seq[Seq[TrainableFeatureValue]]) = new {
     def toFeatureColumns(weightFinder: Int => Double, labelFinder: Int => Double) = {
       for ((col, columnId) <- columns.zipWithIndex) yield {

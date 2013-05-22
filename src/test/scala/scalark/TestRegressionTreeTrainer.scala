@@ -22,11 +22,12 @@ import org.junit.runner._
 import org.scalatest.junit._
 import org.scalatest.matchers.ShouldMatchers
 import spark.SparkContext
+import scala.collection.mutable.ArraySeq
 
 @RunWith(classOf[JUnitRunner])
 class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkTestUtils {
 
-  ignore("train/test") {
+  test("train/test") {
     val db = new DataSynthesizer(2, 0, 1000)
     val allRows = db.regression(1100, 1, 0.1)
     val (train, test) = allRows.splitAt(1000)
@@ -41,8 +42,7 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
     testError.min should be < (testError.last)
   }
 
-  
-  ignore("2-d single gaussian") {
+  test("2-d single gaussian") {
     var db = new DataSynthesizer(2, 0, 1000)
     val rows = db.regression(10000, 1, 0.1)
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 10)
@@ -50,17 +50,15 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
     testTrainer(config, rows)
   }
 
-  ignore("2-d single gaussian distributed") {
+  sparkTest("2-d single gaussian distributed") {
     var db = new DataSynthesizer(2, 0, 1000)
-    //TODO:  Restore
-//    val rows = db.regression(10000, 1, 0.1)
-    val rows = db.regression(100, 1, 0.1)
+    val rows = db.regression(10000, 1, 0.1)
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 10)
 
     testDistributedTrainer(config, rows, sc)
   }
 
-  ignore("2-d linear") {
+  test("2-d linear") {
     var rows = Vector(LabeledRow(features = Array(0, 0), label = 0.))
     rows = rows :+ LabeledRow(features = Array(0, 1), label = 1.)
     rows = rows :+ LabeledRow(features = Array(1, 0), label = 2.)
@@ -70,7 +68,7 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
     testTrainer(config, rows)
   }
 
-  ignore("100-d Gaussian") {
+  test("100-d Gaussian") {
     val db = new DataSynthesizer(100, 0, 1000)
     val rows = db.regression(1000, 2, 0.1)
     val config = new DecisionTreeTrainConfig(minLeafSize = 5, leafCount = 50)
@@ -80,9 +78,7 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
 
   sparkTest("100-d Gaussian distributed") {
     val db = new DataSynthesizer(100, 0, 1000)
-    //TODO: Restore
     val rows = db.regression(1000, 2, 0.1)
-//    val rows = db.regression(1000, 2, 0.1)
     val config = new DecisionTreeTrainConfig(minLeafSize = 5, leafCount = 50)
 
     testDistributedTrainer(config, rows, sc)
@@ -97,20 +93,23 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
       var delta = losses(iter - 1) - losses(iter)
       delta should be >= (0.0)
       if (trees(iter)._1 != null)
-        delta should be (trees(iter)._1.gain plusOrMinus 1.0e-5)
+        delta should be(trees(iter)._1.gain plusOrMinus 1.0e-5)
     }
   }
 
-  def testDistributedTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[LabeledRow[Double]], sc:SparkContext) = {
+  def testDistributedTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[LabeledRow[Double]], sc: SparkContext) = {
     val columns = rows.toSortedColumnData.toFeatureColumns((rowId: Int) => 1.0, (rowId: Int) => rows(rowId).label)
-    val trainer = new RegressionTreeTrainer(config, new DistributedColumnOperations(sc.parallelize(columns).cache()), rows.size)
-    val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
+    val trainer = new RegressionTreeTrainer(config, new DistributedColumnOperations(sc.parallelize(columns).cache), rows.size)
+    val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield {
+      val s = trainer.nextIteration()
+      (s, trainer.model)
+    })
     val losses = trees.map(t => rows.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
     for (iter <- (1 until config.leafCount)) {
       var delta = losses(iter - 1) - losses(iter)
       delta should be >= (0.0)
       if (trees(iter)._1 != null)
-        delta should be (trees(iter)._1.gain plusOrMinus 1.0e-5)
+        delta should be(trees(iter)._1.gain plusOrMinus 1.0e-5)
     }
   }
 }

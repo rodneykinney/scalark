@@ -74,19 +74,8 @@ class FeatureColumn[L, T <: Observation with Weight with Feature](val instances:
    */
   def repartition(parent: TreeRegion, leftChild: TreeRegion, rightChild: TreeRegion, moveToLeft: Int => Boolean) = {
     val (leftInstances, rightInstances) = all(parent).partition(i => moveToLeft(i.rowId))
-    //TODO: Cleanup
-    if (leftInstances.size != leftChild.size)
-      println("Left mismatch")
-    if (rightInstances.size != rightChild.size)
-      println("Right mismatch")
-
     for (index <- (0 until leftInstances.size)) instances(leftChild.start + index) = leftInstances(index)
-    //TODO: Cleanup
-    for (index <- (0 until rightInstances.size)) {
-      if (rightChild.start + index == 10000)
-        println("Something's wrong")
-      instances(rightChild.start + index) = rightInstances(index)
-    }
+    for (index <- (0 until rightInstances.size)) instances(rightChild.start + index) = rightInstances(index)
     this
   }
 

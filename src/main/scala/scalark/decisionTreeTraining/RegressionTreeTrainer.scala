@@ -56,9 +56,6 @@ class RegressionTreeTrainer[T <: Observation with Weight with Feature with Label
       val regionToSplit = partition(bestCandidate.regionId)
       val leftIds = columnOps.selectIdsByFeature(bestCandidate.columnId, (feature:Int) => feature <= bestCandidate.threshold, regionToSplit)
       val (leftChildRegion, rightChildRegion) = partition.split(regionToSplit, leftIds.size)
-      //TODO: Cleanup
-      if (leftChildRegion.size != leftIds.size || rightChildRegion.size != regionToSplit.size - leftIds.size)
-        println("Sizes don't match")
       columnOps.repartitionAll(regionToSplit, leftChildRegion, rightChildRegion, leftIds)
 
       candidates = candidates ++ columnOps.getSplitCandidates(leftChildRegion, splitFinder)

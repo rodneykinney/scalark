@@ -120,7 +120,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with Should
   sparkTest("RegressionTreeTrainer distributed") {
     init
 
-    val columns = sc.parallelize(Vector(column))
+    val columns = sc.parallelize(Vector(column)).cache
     val columnOps = new DistributedColumnOperations(columns)
     var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), columnOps, rows.size)
 

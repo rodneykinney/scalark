@@ -57,9 +57,7 @@ class LocalColumnOperations[T <: Observation with Weight with Feature with Label
   }
 
   def repartitionAll(parentRegion: TreeRegion, leftChildRegion: TreeRegion, rightChildRegion: TreeRegion, leftIds: Int => Boolean) = {
-    //TODO: Cleanup
     for (col <- columns) {
-      require(col.all(parentRegion).filter(r => leftIds(r.rowId)).size == leftChildRegion.size, "Wrong size")
       col.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds)
     }
   }
@@ -102,14 +100,9 @@ class DistributedColumnOperations[T <: Observation with Weight with Feature with
         map(_.rowId).toSet).collect.head
   }
   def repartitionAll(parentRegion: TreeRegion, leftChildRegion: TreeRegion, rightChildRegion: TreeRegion, leftIds: Int => Boolean) = {
-    //TODO: Cleanup
-    columns = for (col <- columns) yield {
-      println("")
-      require(col.all(parentRegion).filter(r => leftIds(r.rowId)).size == leftChildRegion.size, "Wrong size")
+    columns = (for (col <- columns) yield {
       col.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds)
-      require(col.all(leftChildRegion).find(r => !leftIds(r.rowId)).isEmpty,"Partitioning didn't work")
-      col
-    }
+    }).cache
   }
   def weightedAverage(region: TreeRegion) = {
     val (total, sum) = ((0.0, 0.0) /: columns.first.all(region)) { case ((w, s), fi) => (w + fi.weight, s + fi.label) }

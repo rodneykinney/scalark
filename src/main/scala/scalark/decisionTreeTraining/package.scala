@@ -25,7 +25,7 @@ package object decisionTreeTraining {
   implicit def rowsToSortedColumns[RowType <: RowOfFeatures](rows: Seq[RowType]) = new {
     def toSortedColumnData = {
       for (col <- (0 until rows.head.features.length)) yield {
-        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => TrainableFeatureValue(rowId=i, featureValue=r.features(col)) }.force.toIndexedSeq
+        rows.zipWithIndex.view.sortBy(_._1.features(col)).map { case (r, i) => TrainableFeatureValue(rowId = i, featureValue = r.features(col)) }.force.toIndexedSeq
       }
     }
   }
@@ -71,18 +71,23 @@ package object decisionTreeTraining {
   }
 
   implicit def FileRowReader(file: java.io.File) = new {
-    def readRows() = {
+    def readRows(labelColumnName:String = "#Label") = {
       val lines = io.Source.fromFile(file).getLines.toBuffer
       val columnNames = lines.head.split("\t")
-      val labelIndex = columnNames.indexOf("#Label")
-      require(labelIndex >= 0, "No column found with name #Label")
-      val dropColumn = Set(columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2): _*)
+      val labelIndex = columnNames.indexOf(labelColumnName)
+      require(labelIndex >= 0, "No column found with name "+labelColumnName)
+      val dropColumn = columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2).toSet
       var rowId = -1
       for (line <- lines.drop(1)) yield {
         val fields = line.split('\t')
         val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toDouble)
         rowId += 1
-        LabeledRow(label = fields(labelIndex).toBoolean, features = features)
+        val label = if (fields(labelIndex) == "1")
+          true
+        else if (fields(labelIndex) == "0")
+          false
+        else fields(labelIndex).toBoolean
+        LabeledRow(label, features = features)
       }
     }
   }

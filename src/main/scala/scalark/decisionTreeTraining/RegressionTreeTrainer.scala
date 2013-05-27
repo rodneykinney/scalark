@@ -29,7 +29,7 @@ class RegressionTreeTrainer[T <: Observation with Weight with Feature with Label
   private val splitter = new RegressionSplitFinder(config.minLeafSize)
 
   private var _model: DecisionTreeModel = {
-    val (total, sum) = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + 1, t._2 + fi.label) }
+    val (total, sum) = ((0.0, 0.0) /: columns.head.all(partition.root)) { (t, fi) => (t._1 + fi.weight, t._2 + fi.weight * fi.label) }
     val mean = sum / total
     new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
   }

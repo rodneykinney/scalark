@@ -28,7 +28,7 @@ object ScoreRows {
     apply(dataFile = config.data, modelFile = config.model, output = config.output)
   }
   def apply(dataFile: String, modelFile: String, output: String) = {
-    val rows = new java.io.File(dataFile).readRows
+    val rows = new java.io.File(dataFile).readRows()
     val model = io.Source.fromFile(modelFile).getLines.mkString.asJson.convertTo[Model]
     using(new java.io.PrintWriter(new java.io.FileWriter(output))) { writer =>
       writer.println("#Label\tScore")

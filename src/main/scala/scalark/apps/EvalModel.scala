@@ -29,7 +29,7 @@ object EvalModel {
   }
 
   def apply[L, T <: Label[L], W <: { def println(s: String); def close() }](dataFile: String, modelFile: String, outputWriter: W) = {
-    val rows = new java.io.File(dataFile).readRows.toList
+    val rows = new java.io.File(dataFile).readRows().toList
     val modelJson = io.Source.fromFile(modelFile).getLines.mkString.asJson
     val models = modelJson match {
       case l: JsArray => modelJson.convertTo[List[Model]]

@@ -1,10 +1,10 @@
-//import AssemblyKeys._
+import AssemblyKeys._
 
-//assemblySettings
+assemblySettings
 
 name := "scalark"
 
-version := "0.1"
+version := "0.2"
 
 organization := "org.scalark"
 

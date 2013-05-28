@@ -34,17 +34,28 @@ object TrainModel extends ConfiguredLogging {
       featureSampleRate = config.featureSampleRate,
       sampleRowsWithReplacement = config.withReplacement)
 
-    this(trainConfig = sgbConfig, input = config.train, output = config.output)
+    this(trainConfig = sgbConfig, input = config.train, output = config.output, config.initialModel)
   }
 
-  def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String) {
+  def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String, initialModel: String) {
     log.info("Training configuration: " + trainConfig)
     val rows = new java.io.File(input).readRows().toList
     val columns = rows.toSortedColumnData
     val labels = rows.map(_.asTrainable).toIndexedSeq
     log.info("Read " + labels.size + " rows from " + input)
-    var iter = 0
-    val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns)
+    val startingTrees = 
+      if (initialModel == null)
+    	Vector.empty[Model]
+      else {
+        log.info("Reading initial model from "+initialModel)
+        val model = io.Source.fromFile(initialModel).getLines.mkString.asJson.convertTo[AdditiveModel]
+        // Initialize score
+        for ((row,label) <- rows.zip(labels))
+          label.score = model.eval(row.features)
+        model.models
+      }
+    var iter = startingTrees.size
+    val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns, startingTrees)
     val start = System.currentTimeMillis()
     val trees = trainer.train({ log.info("Iteration #" + iter); iter += 1 })
     val end = System.currentTimeMillis()
@@ -61,6 +72,7 @@ class TrainModelConfig extends CommandLineParameters {
   var train: String = "train.tsv"
   var numIterations: Int = 100
   var output: String = "trees.json"
+  var initialModel: String = _
   var learningRate = 0.2
   var leafCount = 10
   var minLeafSize = 20
@@ -72,6 +84,7 @@ class TrainModelConfig extends CommandLineParameters {
     required("train", "In TSV file to use for training") ::
       required("numIterations", "Number of training iterations") ::
       required("output", "Output file containing trained trees") ::
+      optional("initialModel", "File containing model for starting point") ::
       optional("learningRate", "Learning rate for gradient descent") ::
       optional("leafCount", "Number of leaf nodes per tree") ::
       optional("minLeafSize", "Minimum number of instances per leaf node") ::

@@ -20,20 +20,20 @@ import scala.collection._
 class StochasticGradientBoostTrainer[L, T <: Label[L]](config: StochasticGradientBoostTrainConfig,
   cost: CostFunction[L, T with Weight],
   data: IndexedSeq[T with MutableWeight with MutableScore with MutableRegion],
-  cols: immutable.Seq[immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]) //(implicit scoreDecorator: T with Label[L] => DecorateWithScoreAndRegion[T with Label[L]]) 
-  {
+  cols: immutable.Seq[immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]],
+  var trees: Seq[Model] = Vector.empty[Model]) {
 
   //TODO:  Validation
   //require(labelData.validate)
 
-  private var trees = Vector.empty[Model]
   private val rand = new util.Random(config.randomSeed)
+  private val initialTreeCount = trees.size
   private val columns = cols.par
 
   def model = new AdditiveModel(trees)
 
   def train(iterationCallback: => Any) = {
-    while (trees.size < config.iterationCount) {
+    while (trees.size - initialTreeCount < config.iterationCount) {
       nextIteration()
       iterationCallback
     }
@@ -49,27 +49,24 @@ class StochasticGradientBoostTrainer[L, T <: Label[L]](config: StochasticGradien
       data foreach (_.score = mean)
       trees = trees :+ new DecisionTreeModel(Vector(new DecisionTreeLeaf(0, mean)))
     } else {
-      val currentModel = model
-
       // Build training data to fit regression tree to gradient of the cost function
       val sampleSeed = rand.nextInt
       // Sample columns
       val columnSampler = sampler(columns.size, config.featureSampleRate, rand)
       val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnSampler(columnId) } map (_._1)
       // Sample rows
-      val weights = 
-      if (config.rowSampleRate == 1.0) {
-        Array.fill(data.size)(1.0)
-      }
-      else {
-        val w = new Array[Double](data.size)
-        if (config.sampleRowsWithReplacement) {
-          for (i <- 0 until (data.size * config.rowSampleRate + 0.5).toInt) w(rand.nextInt(data.size)) += 1
+      val weights =
+        if (config.rowSampleRate == 1.0) {
+          Array.fill(data.size)(1.0)
         } else {
-          for (i <- 0 until data.size if rand.nextDouble < config.rowSampleRate) w(i) = 1
+          val w = new Array[Double](data.size)
+          if (config.sampleRowsWithReplacement) {
+            for (i <- 0 until (data.size * config.rowSampleRate + 0.5).toInt) w(rand.nextInt(data.size)) += 1
+          } else {
+            for (i <- 0 until data.size if rand.nextDouble < config.rowSampleRate) w(i) = 1
+          }
+          w
         }
-        w
-      }
       // Compute gradient
       val gradients = cost.gradient(data)
       // Compute residuals.  Regression tree will be fit to this data

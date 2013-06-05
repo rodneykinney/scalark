@@ -32,7 +32,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite with ShouldMatchers {
       LabeledRow(true, Vector(2)))
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 5, leafCount = 3, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
-    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.asTrainable), new LocalColumnOperationsFactory(rows.toSortedColumnData.par))
+    val trainer = new StochasticGradientBoostTrainer(config, cost, rows.map(_.asTrainable), new ParallelColumnOperationsFactory(rows.toSortedColumnData.par))
     val tol = 1.0e-8
 
     var models = Vector.empty[Model]
@@ -65,7 +65,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite with ShouldMatchers {
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 4, learningRate = 1.0, minLeafSize = 1)
     val cost = new LogLogisticLoss()
     val trainingRows = rows.map(_.asTrainable)
-    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, new LocalColumnOperationsFactory(rows.toSortedColumnData.par))
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, new ParallelColumnOperationsFactory(rows.toSortedColumnData.par))
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))
@@ -84,7 +84,7 @@ class TestStochasticGradientBoostTrainer extends FunSuite with ShouldMatchers {
     val config = new StochasticGradientBoostTrainConfig(iterationCount = 10, leafCount = 6, learningRate = 1.0, minLeafSize = 10)
     val cost = new LogLogisticLoss()
     val trainingRows = rows.map(_.asTrainable)
-    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, new LocalColumnOperationsFactory(rows.toSortedColumnData.par))
+    val trainer = new StochasticGradientBoostTrainer(config, cost, trainingRows, new ParallelColumnOperationsFactory(rows.toSortedColumnData.par))
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     val errorCount = models map (m => rows.count(r => m.eval(r.features) > 0 ^ r.label))

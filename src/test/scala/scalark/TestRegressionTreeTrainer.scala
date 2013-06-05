@@ -33,7 +33,7 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
     val (train, test) = allRows.splitAt(1000)
     val columns = train.toSortedColumnData.toFeatureColumns((rowId: Int) => 1.0, (rowId: Int) => allRows(rowId).label)
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 500)
-    val colOpsFactory = new LocalColumnOperations(columns.par)
+    val colOpsFactory = new ParallelColumnOperations(columns.par)
     val trainer = new RegressionTreeTrainer(config, colOpsFactory, train.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val trainError = trees.map(t => train.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
@@ -86,7 +86,7 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers with SparkT
 
   def testTrainer(config: DecisionTreeTrainConfig, rows: IndexedSeq[LabeledRow[Double]]) = {
     val columns = rows.toSortedColumnData.toFeatureColumns((rowId: Int) => 1.0, (rowId: Int) => rows(rowId).label)
-    val trainer = new RegressionTreeTrainer(config, new LocalColumnOperations(columns.par), rows.size)
+    val trainer = new RegressionTreeTrainer(config, new ParallelColumnOperations(columns.par), rows.size)
     val trees = Vector(new Tuple2(null, trainer.model)) ++ (for (i <- (1 until config.leafCount)) yield { val s = trainer.nextIteration(); (s, trainer.model) })
     val losses = trees.map(t => rows.map(r => math.pow(r.label - t._2.eval(r.features), 2)).sum)
     for (iter <- (1 until config.leafCount)) {

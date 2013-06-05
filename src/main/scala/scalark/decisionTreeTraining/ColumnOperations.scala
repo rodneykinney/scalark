@@ -38,12 +38,55 @@ trait ColumnOperations {
 
 /** Factory interface for ColumnOperations */
 trait ColumnOperationsFactory {
-  def size: Int
+  def columnCount: Int
   def apply(columnFilter: Int => Boolean, weights: Int => Double, values: Int => Double): ColumnOperations
 }
 
-/** Multi-threaded training on a single processor */
-class LocalColumnOperations[T <: Observation with Weight with Feature with Label[Double]](val columns: parallel.ParSeq[FeatureColumn[Double, T]]) extends ColumnOperations {
+/** Single-threaded training on a single machine */
+class SerialColumnOperations[T <: Observation with Weight with Feature with Label[Double]](val columns: IndexedSeq[FeatureColumn[Double, T]]) extends ColumnOperations {
+  val size = columns.size
+  def getSplitCandidates(region: TreeRegion, splitFinder: RegressionSplitFinder) = {
+    columns.map(col => splitFinder.findSplitCandidate(col, region)).collect { case Some(c) => c }.seq
+  }
+
+  def selectIdsByFeature(columnId: Int, featureFilter: Int => Boolean, region: TreeRegion) = {
+    columns.find(_.columnId == columnId).get.
+      all(region).
+      filter(row => featureFilter(row.featureValue)).
+      map(_.rowId).toSet
+  }
+
+  def repartitionAll(parentRegion: TreeRegion, leftChildRegion: TreeRegion, rightChildRegion: TreeRegion, leftIds: Int => Boolean) = {
+    for (col <- columns) {
+      col.repartition(parentRegion, leftChildRegion, rightChildRegion, leftIds)
+    }
+  }
+
+  def weightedAverage(region: TreeRegion) = {
+    val (total, sum) = ((0.0, 0.0) /: columns.head.all(region)) { case ((w, s), fi) => (w + fi.weight, s + fi.label) }
+    sum / total
+  }
+
+}
+
+class SerialColumnOperationsFactory(columns: IndexedSeq[immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]) extends ColumnOperationsFactory {
+  val columnCount = columns.size
+  def apply(columnFilter: Int => Boolean, weights: Int => Double, gradients: Int => Double) = {
+    val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnFilter(columnId) } map (_._1)
+    val residualData = for ((c, columnId) <- sampledColumns.zipWithIndex) yield {
+      for (row <- c) {
+        row.weight = weights(row.rowId)
+        row.label = -gradients(row.rowId)
+      }
+      val regressionInstances = mutable.ArraySeq.empty[Observation with Weight with Feature with Label[Double]] ++ c
+      new FeatureColumn[Double, Observation with Weight with Feature with Label[Double]](regressionInstances, columnId)
+    }
+    new SerialColumnOperations(residualData)
+  }
+}
+
+/** Multi-threaded training on a single machine */
+class ParallelColumnOperations[T <: Observation with Weight with Feature with Label[Double]](val columns: parallel.ParSeq[FeatureColumn[Double, T]]) extends ColumnOperations {
   val size = columns.size
   def getSplitCandidates(region: TreeRegion, splitFinder: RegressionSplitFinder) = {
     columns.map(col => splitFinder.findSplitCandidate(col, region)).collect { case Some(c) => c }.seq
@@ -69,11 +112,11 @@ class LocalColumnOperations[T <: Observation with Weight with Feature with Label
 
 }
 
-class LocalColumnOperationsFactory(columns: parallel.ParSeq[immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]) extends ColumnOperationsFactory {
-  val size = columns.size
+class ParallelColumnOperationsFactory(columns: parallel.ParSeq[immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]) extends ColumnOperationsFactory {
+  val columnCount = columns.size
   def apply(columnFilter: Int => Boolean, weights: Int => Double, gradients: Int => Double) = {
-    val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnFilter(columnId) } map (_._1)
-    val residualData = for ((c, columnId) <- sampledColumns.zipWithIndex) yield {
+    val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnFilter(columnId) }
+    val residualData = for ((c, columnId) <- sampledColumns) yield {
       for (row <- c) {
         row.weight = weights(row.rowId)
         row.label = -gradients(row.rowId)
@@ -81,7 +124,7 @@ class LocalColumnOperationsFactory(columns: parallel.ParSeq[immutable.Seq[Observ
       val regressionInstances = mutable.ArraySeq.empty[Observation with Weight with Feature with Label[Double]] ++ c
       new FeatureColumn[Double, Observation with Weight with Feature with Label[Double]](regressionInstances, columnId)
     }
-    new LocalColumnOperations(residualData)
+    new ParallelColumnOperations(residualData)
   }
 }
 
@@ -107,6 +150,21 @@ class DistributedColumnOperations[T <: Observation with Weight with Feature with
   def weightedAverage(region: TreeRegion) = {
     val (total, sum) = ((0.0, 0.0) /: columns.first.all(region)) { case ((w, s), fi) => (w + fi.weight, s + fi.label) }
     sum / total
+  }
+}
+
+class DistributedColumnOperationsFactory(val columnCount: Int, val columns: RDD[Tuple2[Int,immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]]) extends ColumnOperationsFactory {
+  def apply(columnFilter: Int => Boolean, weights: Int => Double, gradients: Int => Double) = {
+    val residualData = columns filter(t => columnFilter(t._1)) map { t => 
+      val (columnId, c) = t
+      for (row <- c) {
+        row.weight = weights(row.rowId)
+        row.label = -gradients(row.rowId)
+      }
+      val regressionInstances = mutable.ArraySeq.empty[Observation with Weight with Feature with Label[Double]] ++ c
+      new FeatureColumn[Double, Observation with Weight with Feature with Label[Double]](regressionInstances, columnId)
+    }
+    new DistributedColumnOperations(residualData)
   }
 
 }

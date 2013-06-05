@@ -105,7 +105,7 @@ class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with Should
     init
 
     val columns = Vector(column).par
-    val columnOps = new LocalColumnOperations(columns)
+    val columnOps = new ParallelColumnOperations(columns)
     var trainer = new RegressionTreeTrainer(new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 2), columnOps, rows.size)
 
     val model1 = trainer.model

@@ -33,7 +33,7 @@ package object decisionTreeTraining {
   implicit def addWeightAndLabel(columns: immutable.Seq[Seq[TrainableFeatureValue]]) = new {
     def toFeatureColumns(weightFinder: Int => Double, labelFinder: Int => Double) = {
       for ((col, columnId) <- columns.zipWithIndex) yield {
-        col.foreach{c => c.weight = weightFinder(c.rowId) ; c.label = labelFinder(c.rowId)}
+        col.foreach { c => c.weight = weightFinder(c.rowId); c.label = labelFinder(c.rowId) }
         new FeatureColumn[Double, TrainableFeatureValue](col, columnId)
       }
     }
@@ -65,19 +65,29 @@ package object decisionTreeTraining {
   }
 
   implicit def FileRowReader(file: java.io.File) = new {
-    def readRows() = {
-      val lines = io.Source.fromFile(file).getLines.toBuffer
-      val columnNames = lines.head.split("\t")
+    def readRows = {
+      val lines = io.Source.fromFile(file).getLines
+      val columnNames = lines.next.split("\t")
       val labelIndex = columnNames.indexOf("#Label")
       require(labelIndex >= 0, "No column found with name #Label")
-      val dropColumn = Set(columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2): _*)
-      var rowId = -1
-      for (line <- lines.drop(1)) yield {
+      val dropColumn = columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2).toSet
+      for (line <- lines) yield {
         val fields = line.split('\t')
         val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toInt)
-        rowId += 1
         LabeledRow(label = fields(labelIndex).toBoolean, features = features)
       }
+    }
+  }
+
+  implicit def ColumnParser(line: String) = new {
+    def parseColumn = {
+      val (colNum, columnData) = line.split('\t').splitAt(1)
+      val columnValues = columnData.map(_.split(',')).map { case Array(r, f) => new TrainableFeatureValue(rowId = r.toInt, featureValue = f.toInt) }
+      new FeatureColumn[Double, TrainableFeatureValue](columnValues, colNum(0).toInt)
+    }
+    def parseColumnData = {
+      val (colNum, columnData) = line.split('\t').splitAt(1)
+      columnData.map(_.split(',')).map { case Array(r, f) => new TrainableFeatureValue(rowId = r.toInt, featureValue = f.toInt) }.toIndexedSeq
     }
   }
 

@@ -61,11 +61,13 @@ trait MutableRegion extends Region {
 
 case class TrainableFeatureValue(val rowId: Int, var label: Double = 0.0, val featureValue: Int, var weight: Double = 1.0) extends Observation with Feature with MutableWeight with MutableLabel[Double]
 
+class TrainableLabel[LabelType](labelInput: LabelType) extends Label[LabelType] with MutableWeight with MutableScore with MutableRegion {
+  val label = labelInput;
+  var weight = 1.0;
+  var score = 0.0;
+  var regionId = -1
+}
+
 case class LabeledRow[LabelType](val label: LabelType, val features: IndexedSeq[Int]) extends Label[LabelType] with RowOfFeatures {
-  def asTrainable = new MutableLabel[LabelType] with MutableWeight with MutableScore with MutableRegion {
-    var label = LabeledRow.this.label;
-    var weight = 1.0;
-    var score = 0.0;
-    var regionId = -1
-  }
+  def asTrainable = new TrainableLabel(label)
 }

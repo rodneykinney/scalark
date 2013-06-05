@@ -52,7 +52,7 @@ class StochasticGradientBoostTrainer[L, T <: Label[L]](
 
       // Build training data to fit regression tree to gradient of the cost function
       // Sample columns
-      val columnFilter = sampler(colOpsFactory.size, config.featureSampleRate, rand)
+      val columnFilter = sampler(colOpsFactory.columnCount, config.featureSampleRate, rand)
       // Sample rows
       val weights =
         if (config.rowSampleRate == 1.0) {

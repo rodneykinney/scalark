@@ -86,8 +86,9 @@ package object decisionTreeTraining {
       new FeatureColumn[Double, TrainableFeatureValue](columnValues, colNum(0).toInt)
     }
     def parseColumnData = {
-      val (colNum, columnData) = line.split('\t').splitAt(1)
-      columnData.map(_.split(',')).map { case Array(r, f) => new TrainableFeatureValue(rowId = r.toInt, featureValue = f.toInt) }.toIndexedSeq
+      val (colNum, columnString) = line.split('\t').splitAt(1)
+      val columnData = columnString.map(_.split(',')).map { case Array(r, f) => new TrainableFeatureValue(rowId = r.toInt, featureValue = f.toInt) }.toIndexedSeq
+      (colNum(0).toInt, columnData)
     }
   }
 

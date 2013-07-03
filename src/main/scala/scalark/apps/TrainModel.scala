@@ -84,14 +84,14 @@ class TrainModelConfig extends CommandLineParameters {
       new ParallelColumnOperationsFactory(columns.par)
     }
     case "columns" if distributed => {
-      //TODO: Support distributed column loading
-      throw new IllegalArgumentException("Distributed not supported")
-      //      val sc = new spark.SparkContext("local[4]", "TrainModel")
-      //      val columns = sc.textFile(train) map(parseColumn(_))
+      val sc = new spark.SparkContext("local[4]", "TrainModel")
+      val columns = sc.textFile(train) map (_.parseColumnData)
+      val columnCount = columns.count.toInt
+      new DistributedColumnOperationsFactory(columnCount, columns)
     }
     case "columns" => {
       val src = io.Source.fromFile(train)
-      val columns = src.getLines.map(_.parseColumnData).toIndexedSeq
+      val columns = src.getLines.map(_.parseColumnData._2).toIndexedSeq
       val colOps = new ParallelColumnOperationsFactory(columns.par)
       src.close
       colOps
@@ -102,7 +102,7 @@ class TrainModelConfig extends CommandLineParameters {
   def labels = format match {
     case "rows" => rows.map(_.asTrainable).toIndexedSeq
     case "columns" => {
-      val src = io.Source.fromFile(train+".labels.tsv")
+      val src = io.Source.fromFile(train + ".labels.tsv")
       val l = src.getLines.map(l => new TrainableLabel(l.toBoolean)).toIndexedSeq
       src.close
       l

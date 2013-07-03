@@ -153,9 +153,9 @@ class DistributedColumnOperations[T <: Observation with Weight with Feature with
   }
 }
 
-class DistributedColumnOperationsFactory(val columnCount: Int, val columns: RDD[Tuple2[Int,immutable.Seq[Observation with Feature with MutableLabel[Double] with MutableWeight]]]) extends ColumnOperationsFactory {
+class DistributedColumnOperationsFactory[T <: Observation with Feature with MutableLabel[Double] with MutableWeight](val columnCount: Int, val columns: RDD[Tuple2[Int, immutable.IndexedSeq[T]]]) extends ColumnOperationsFactory {
   def apply(columnFilter: Int => Boolean, weights: Int => Double, gradients: Int => Double) = {
-    val residualData = columns filter(t => columnFilter(t._1)) map { t => 
+    val residualData = columns filter (t => columnFilter(t._1)) map { t =>
       val (columnId, c) = t
       for (row <- c) {
         row.weight = weights(row.rowId)

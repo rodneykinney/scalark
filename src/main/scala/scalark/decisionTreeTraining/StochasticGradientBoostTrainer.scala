@@ -52,8 +52,17 @@ class StochasticGradientBoostTrainer[L, T <: Label[L]](config: StochasticGradien
       // Build training data to fit regression tree to gradient of the cost function
       val sampleSeed = rand.nextInt
       // Sample columns
-      val columnSampler = sampler(columns.size, config.featureSampleRate, rand)
-      val sampledColumns = columns.zipWithIndex.filter { case (c, columnId) => columnSampler(columnId) } map (_._1)
+      val sampledColumns = {
+        var columnSampler = sampler(columns.size, config.featureSampleRate, rand)
+        var sCols = columns.zipWithIndex.filter { case (c, columnId) => columnSampler(columnId) } map (_._1)
+        var size = sCols.size
+        while (size == 0) {
+          columnSampler = sampler(columns.size, config.featureSampleRate, rand)
+          sCols = columns.zipWithIndex.filter { case (c, columnId) => columnSampler(columnId) } map (_._1)
+          size = sCols.size
+        }
+        sCols
+      }
       // Sample rows
       val weights =
         if (config.rowSampleRate == 1.0) {

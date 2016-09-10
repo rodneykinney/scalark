@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package scalark.apps
-import breeze.util.logging._
+import breeze.util._
 import scalark.decisionTreeTraining._
 import scalark.serialization._
 import spray.json._
 
-object TrainModel extends ConfiguredLogging {
+object TrainModel extends SerializableLogging {
 
   def main(args: Array[String]) {
     val config = new TrainModelConfig
@@ -38,16 +38,16 @@ object TrainModel extends ConfiguredLogging {
   }
 
   def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String, initialModel: String) {
-    log.info("Training configuration: " + trainConfig)
+    logger.info("Training configuration: " + trainConfig)
     val rows = new java.io.File(input).readRows().toList
     val columns = rows.toSortedColumnData
     val labels = rows.map(_.asTrainable).toIndexedSeq
-    log.info("Read " + labels.size + " rows from " + input)
+    logger.info("Read " + labels.size + " rows from " + input)
     val startingTrees = 
       if (initialModel == null)
     	Vector.empty[Model]
       else {
-        log.info("Reading initial model from "+initialModel)
+        logger.info("Reading initial model from "+initialModel)
         val model = io.Source.fromFile(initialModel).getLines.mkString.asJson.convertTo[AdditiveModel]
         // Initialize score
         for ((row,label) <- rows.zip(labels))
@@ -57,14 +57,14 @@ object TrainModel extends ConfiguredLogging {
     var iter = startingTrees.size
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns, startingTrees)
     val start = System.currentTimeMillis()
-    val trees = trainer.train({ log.info("Iteration #" + iter); iter += 1 })
+    val trees = trainer.train({ logger.info("Iteration #" + iter); iter += 1 })
     val end = System.currentTimeMillis()
-    log.info("Training complete in " + (end - start).toDouble / 1000 + " seconds")
+    logger.info("Training complete in " + (end - start).toDouble / 1000 + " seconds")
     val treesJson = trees.toJson
     using(new java.io.PrintWriter(new java.io.File(output))) {
       p => p.println(treesJson)
     }
-    log.info("Saved model to " + output)
+    logger.info("Saved model to " + output)
   }
 }
 

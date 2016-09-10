@@ -17,11 +17,10 @@ package scalark.perceptron
 
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FunSuite}
 
 @RunWith(classOf[JUnitRunner])
-class TestPerceptronTrainer extends FunSuite with ShouldMatchers {
+class TestPerceptronTrainer extends FunSuite with Matchers {
   test("One step logistic regression") {
     // Build network with no hidden layers
     val net = new Network(IndexedSeq(new DenseConnection(3, 1, new Array[Double](3), Identity)))

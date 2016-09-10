@@ -21,14 +21,13 @@ import scala.util._
 import scala.collection._
 import org.junit.runner._
 import org.scalatest.junit._
-import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestRanking extends FunSuite with BeforeAndAfter with ShouldMatchers {
-  before {
-    breeze.util.logging.ConfiguredLogging.configuration = breeze.config.Configuration.fromMap(immutable.Map(
-      "log.level" -> "warn"))
-  }
+class TestRanking extends FunSuite with BeforeAndAfter with Matchers {
+//  before {
+//    breeze.util.logging.ConfiguredLogging.configuration = breeze.config.Configuration.fromMap(immutable.Map(
+//      "log.level" -> "warn"))
+//  }
 
   test("TotalCost") {
     val c = new RankingCost()
@@ -40,22 +39,22 @@ class TestRanking extends FunSuite with BeforeAndAfter with ShouldMatchers {
       LabeledQueryRow(label = 1, queryId = 1, features=Vector.empty[Double]).asTrainable)
 
     for (row <- rows) row.score = row.label
-    c.totalCost(rows) should be (3 * math.log(1 + math.exp(-1)) plusOrMinus 1.0e-9)
+    c.totalCost(rows) should be (3 * math.log(1 + math.exp(-1)) +- 1.0e-9)
     for (row <- rows) row.score = 0
-    c.totalCost(rows) should be (3 * math.log(2) plusOrMinus 1.0e-9)
+    c.totalCost(rows) should be (3 * math.log(2) +- 1.0e-9)
     c.gradient(rows) should equal(Seq(-.5, -.5, 1, -.5, .5))
   }
 
   test("Optimal Delta") {
-    val rows = List(new { val rowId: Int = 0; var weight: Double = 1.0; var label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 1; var weight: Double = 1.0; var label: Int = 0; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 2; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 3; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
-      new { val rowId: Int = 4; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight)
+    val rows = List(new { val rowId: Int = 0; var weight: Double = 1.0; var label: Int = 0; val queryId: Int = 0; var score = 0.0; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 1; var weight: Double = 1.0; var label: Int = 0; val queryId: Int = 0; var score = 0.0; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 2; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.0; var regionId = 0 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 3; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.0; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight,
+      new { val rowId: Int = 4; var weight: Double = 1.0; var label: Int = 1; val queryId: Int = 0; var score = 0.0; var regionId = 1 } with Observation with Label[Int] with Query with Score with Region with Weight)
 
     val costs = Range(1, 6).map(new RankingCost(_))
     val x = costs.head.totalCost(rows)
-    costs.head.totalCost(rows) should be (6 * math.log(2) plusOrMinus 1.0e-9)
+    costs.head.totalCost(rows) should be (6 * math.log(2) +- 1.0e-9)
     val scores = for (cost <- costs) yield { val d = cost.optimalDelta(rows); d(1) - d(0) }
     // With more accurate LBFGS, difference in scores should converge to log(2)
     val target = math.log(2)

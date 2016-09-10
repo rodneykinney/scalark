@@ -19,10 +19,9 @@ import scalark.decisionTreeTraining._
 import org.scalatest._
 import org.junit.runner._
 import org.scalatest.junit._
-import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestStochasticGradientBoostTrainer extends FunSuite with ShouldMatchers {
+class TestStochasticGradientBoostTrainer extends FunSuite with Matchers {
   test("SGB - toy 1d") {
     val rows = Vector(
       LabeledRow(true, Vector(0)),
@@ -38,14 +37,14 @@ class TestStochasticGradientBoostTrainer extends FunSuite with ShouldMatchers {
     var models = Vector.empty[Model]
     trainer.train(models = models :+ trainer.model)
     // Mean-value model is log(3/2)
-    rows.foreach(r => models(0).eval(r.features) should be (math.log(1.5) plusOrMinus tol))
+    rows.foreach(r => models(0).eval(r.features) should be (math.log(1.5) +- tol))
 
     // After one iteration, tree splits the range into three nodes
-    models(1).eval(rows(0).features) should be (math.log(1.5) + 5. / 3 plusOrMinus tol)
-    models(1).eval(rows(4).features) should be (math.log(1.5) + 5. / 3 plusOrMinus tol)
-    models(1).eval(rows(1).features) should be (math.log(1.5) - 10. / 9 plusOrMinus tol)
-    models(1).eval(rows(2).features) should be (math.log(1.5) - 10. / 9 plusOrMinus tol)
-    models(1).eval(rows(3).features) should be (math.log(1.5) - 10. / 9 plusOrMinus tol)
+    models(1).eval(rows(0).features) should be (math.log(1.5) + 5.0 / 3 +- tol)
+    models(1).eval(rows(4).features) should be (math.log(1.5) + 5.0 / 3 +- tol)
+    models(1).eval(rows(1).features) should be (math.log(1.5) - 10.0 / 9 +- tol)
+    models(1).eval(rows(2).features) should be (math.log(1.5) - 10.0 / 9 +- tol)
+    models(1).eval(rows(3).features) should be (math.log(1.5) - 10.0 / 9 +- tol)
 
     // Middle range should converge to log(0.5)
     var delta = math.abs(models(1).eval(rows(1).features) - math.log(0.5))

@@ -17,7 +17,6 @@ package scalark.apps
 
 import scalark.decisionTreeTraining._
 import spray.json._
-import DefaultJsonProtocol._
 import scalark.serialization._
 
 object EvalModel {

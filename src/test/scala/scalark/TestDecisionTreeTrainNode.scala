@@ -20,10 +20,9 @@ import org.scalatest._
 import org.junit.runner._
 import org.scalatest.junit._
 import scala.collection._
-import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with ShouldMatchers {
+class TestDecisionTreeTrainNode extends FunSuite with BeforeAndAfter with Matchers {
   val features = Array(3, 4, 2, 2, 2, 1, 6, 8, 20, 5)
   val partition: TreePartition = new TreePartition(features.size)
   var column: FeatureColumn[Double, Observation with Weight with Feature with Label[Double]] = _

@@ -20,10 +20,9 @@ import org.scalatest._
 import scala.util._
 import org.junit.runner._
 import org.scalatest.junit._
-import org.scalatest.matchers.ShouldMatchers
 
 @RunWith(classOf[JUnitRunner])
-class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers {
+class TestRegressionTreeTrainer extends FunSuite with Matchers {
 
   test("train/test") {
     val db = new DataSynthesizer(2, 0, 1000)
@@ -48,10 +47,10 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers {
   }
 
   test("2-d linear") {
-    var rows = Vector(LabeledRow(features = Array(0, 0), label = 0.))
-    rows = rows :+ LabeledRow(features = Array(0, 1), label = 1.)
-    rows = rows :+ LabeledRow(features = Array(1, 0), label = 2.)
-    rows = rows :+ LabeledRow(features = Array(1, 1), label = 3.)
+    var rows = Vector(LabeledRow(features = Array(0, 0), label = 0.0))
+    rows = rows :+ LabeledRow(features = Array(0, 1), label = 1.0)
+    rows = rows :+ LabeledRow(features = Array(1, 0), label = 2.0)
+    rows = rows :+ LabeledRow(features = Array(1, 1), label = 3.0)
 
     val config = new DecisionTreeTrainConfig(minLeafSize = 1, leafCount = 4)
     testTrainer(config, rows)
@@ -74,7 +73,7 @@ class TestRegressionTreeTrainer extends FunSuite with ShouldMatchers {
       var delta = losses(iter - 1) - losses(iter)
       delta should be >= (0.0)
       if (trees(iter)._1 != null)
-        delta should be (trees(iter)._1.gain plusOrMinus 1.0e-5)
+        delta should be (trees(iter)._1.gain +- 1.0e-5)
     }
   }
 }

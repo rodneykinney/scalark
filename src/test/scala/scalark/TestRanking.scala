@@ -24,11 +24,6 @@ import org.scalatest.junit._
 
 @RunWith(classOf[JUnitRunner])
 class TestRanking extends FunSuite with BeforeAndAfter with Matchers {
-//  before {
-//    breeze.util.logging.ConfiguredLogging.configuration = breeze.config.Configuration.fromMap(immutable.Map(
-//      "log.level" -> "warn"))
-//  }
-
   test("TotalCost") {
     val c = new RankingCost()
 

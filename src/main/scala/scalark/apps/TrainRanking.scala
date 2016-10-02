@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 package scalark.apps
+
 import breeze.util._
 import scalark.decisionTreeTraining._
 import scalark.serialization._
 import spray.json._
 
-object TrainModel extends SerializableLogging {
+object TrainRanking extends SerializableLogging {
 
   def main(args: Array[String]) {
-    val config = new TrainModelConfig
+    val config = new TrainRankingConfig
     if (!config.parse(args))
       System.exit(0)
 
@@ -34,12 +35,12 @@ object TrainModel extends SerializableLogging {
       featureSampleRate = config.featureSampleRate,
       sampleRowsWithReplacement = config.withReplacement)
 
-    this(trainConfig = sgbConfig, input = config.train, output = config.output, config.initialModel)
+    this(trainConfig = sgbConfig, labelOrder = config.labelOrder.split(','), input = config.train, output = config.output, config.initialModel)
   }
 
-  def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String, initialModel: String) {
+  def apply(trainConfig: StochasticGradientBoostTrainConfig, labelOrder: IndexedSeq[String], input: String, output: String, initialModel: String) {
     logger.info("Training configuration: " + trainConfig)
-    val rows = new java.io.File(input).readRows().toList
+    val rows = new java.io.File(input).readQueryRows(labelOrder).toList
     val columns = rows.toSortedColumnData
     val labels = rows.map(_.asTrainable).toIndexedSeq
     logger.info("Read " + labels.size + " rows from " + input)
@@ -55,7 +56,7 @@ object TrainModel extends SerializableLogging {
         model.models
       }
     var iter = startingTrees.size
-    val trainer = new StochasticGradientBoostTrainer(trainConfig, new LogLogisticLoss(), labels, columns, startingTrees)
+    val trainer = new StochasticGradientBoostTrainer(trainConfig, new RankingCost(), labels, columns, startingTrees)
     val start = System.currentTimeMillis()
     val trees = trainer.train({ logger.info("Iteration #" + iter); iter += 1 })
     val end = System.currentTimeMillis()
@@ -68,29 +69,12 @@ object TrainModel extends SerializableLogging {
   }
 }
 
-class TrainModelConfig extends CommandLineParameters {
-  var train: String = "train.tsv"
-  var numIterations: Int = 100
-  var output: String = "trees.json"
-  var initialModel: String = _
-  var learningRate = 0.2
-  var leafCount = 10
-  var minLeafSize = 20
-  var rowSampleRate = 1.0
-  var featureSampleRate = 1.0
-  var withReplacement = false
+class TrainRankingConfig extends TrainClassificationConfig {
+  var labelOrder: String = ""
 
-  def usage = {
-    required("train", "In TSV file to use for training") ::
-      required("numIterations", "Number of training iterations") ::
-      required("output", "Output file containing trained trees") ::
-      optional("initialModel", "File containing model for starting point") ::
-      optional("learningRate", "Learning rate for gradient descent") ::
-      optional("leafCount", "Number of leaf nodes per tree") ::
-      optional("minLeafSize", "Minimum number of instances per leaf node") ::
-      optional("rowSampleRate", "Number of rows to sample at each iteration") ::
-      optional("withReplacement", "Sample rows with replacement") ::
-      optional("featureSampleRate", "Number of features to sample at each iteration") ::
-      Nil
+  override def usage = {
+    super.usage.takeWhile(_.required) ++
+      List(required("labelOrder", "CSV list of expected relevance labels, ordered from best to worst")) ++
+      super.usage.dropWhile(_.required)
   }
 }

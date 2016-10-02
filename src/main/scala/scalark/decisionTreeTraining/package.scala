@@ -90,6 +90,29 @@ package object decisionTreeTraining {
         LabeledRow(label, features = features)
       }
     }
+    def readQueryRows(labelOrder: IndexedSeq[String], labelColumnName:String = "#Label", queryColumnName: String = "#Query") = {
+      val lines = io.Source.fromFile(file).getLines.toBuffer
+      val columnNames = lines.head.split("\t")
+      val labelIndex = columnNames.indexOf(labelColumnName)
+      val queryIndex = columnNames.indexOf(queryColumnName)
+      val queryToId = mutable.HashMap.empty[String, Int]
+      require(labelIndex >= 0, "No column found with name "+labelColumnName)
+      val dropColumn = columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2).toSet
+      var rowId = -1
+      val rows = for (line <- lines.drop(1)) yield {
+        val fields = line.split('\t')
+        val features = fields.indices.filter(!dropColumn(_)).map(fields(_).toDouble)
+        rowId += 1
+        val label = {
+          val l = labelOrder.indexOf(fields(labelIndex))
+          require(l >= 0, s"Unrecognized label ${fields(labelIndex)}. Expected one of ${labelOrder.mkString("[",",","]")}")
+          l
+        }
+        val queryId = queryToId.getOrElseUpdate(fields(queryIndex), queryToId.size)
+        LabeledQueryRow(queryId, features, label)
+      }
+      rows.sortBy(r => (r.queryId, labelOrder.indexOf(r.label)))
+    }
   }
 
   def using[A, B <: { def close(): Unit }](closeable: B)(f: B => A): A =

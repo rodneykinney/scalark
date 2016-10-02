@@ -10,6 +10,8 @@ organization := "org.scalark"
 
 scalaVersion := "2.11.6"
 
+enablePlugins(JavaAppPackaging)
+
 resolvers += "Repo Spray IO" at "http://repo.spray.io"
 
 libraryDependencies += "io.spray" %  "spray-json_2.11" % "1.3.2"

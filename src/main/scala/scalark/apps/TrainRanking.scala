@@ -16,9 +16,10 @@ limitations under the License.
 package scalark.apps
 
 import breeze.util._
+import spray.json._
+
 import scalark.decisionTreeTraining._
 import scalark.serialization._
-import spray.json._
 
 object TrainRanking extends SerializableLogging {
 
@@ -35,30 +36,50 @@ object TrainRanking extends SerializableLogging {
       featureSampleRate = config.featureSampleRate,
       sampleRowsWithReplacement = config.withReplacement)
 
-    this(trainConfig = sgbConfig, labelOrder = config.labelOrder.split(','), input = config.train, output = config.output, config.initialModel)
+    this (
+      trainConfig = sgbConfig,
+      input = config.train,
+      labelColumnName = config.labelColumnName,
+      labelOrder = config.labelOrder.split(','),
+      queryColumnName = config.queryColumnName,
+      output = config.output,
+      initialModel = config.initialModel)
   }
 
-  def apply(trainConfig: StochasticGradientBoostTrainConfig, labelOrder: IndexedSeq[String], input: String, output: String, initialModel: String) {
+  def apply(
+    trainConfig: StochasticGradientBoostTrainConfig,
+    input: String,
+    labelOrder: IndexedSeq[String],
+    labelColumnName: String = "#Label",
+    queryColumnName: String = "#Query",
+    output: String,
+    initialModel: String) {
     logger.info("Training configuration: " + trainConfig)
-    val rows = new java.io.File(input).readQueryRows(labelOrder).toList
+    val rows =
+      new java.io.File(input).readQueryRows(
+        labelOrder,
+        labelColumnName = labelColumnName,
+        queryColumnName = queryColumnName).toList
     val columns = rows.toSortedColumnData
     val labels = rows.map(_.asTrainable).toIndexedSeq
     logger.info("Read " + labels.size + " rows from " + input)
-    val startingTrees = 
+    val startingTrees =
       if (initialModel == null)
-    	Vector.empty[Model]
+        Vector.empty[Model]
       else {
-        logger.info("Reading initial model from "+initialModel)
-        val model = io.Source.fromFile(initialModel).getLines.mkString.asJson.convertTo[AdditiveModel]
+        logger.info("Reading initial model from " + initialModel)
+        val model = io.Source.fromFile(initialModel).mkString.parseJson.convertTo[AdditiveModel]
         // Initialize score
-        for ((row,label) <- rows.zip(labels))
+        for ((row, label) <- rows.zip(labels))
           label.score = model.eval(row.features)
         model.models
       }
     var iter = startingTrees.size
     val trainer = new StochasticGradientBoostTrainer(trainConfig, new RankingCost(), labels, columns, startingTrees)
     val start = System.currentTimeMillis()
-    val trees = trainer.train({ logger.info("Iteration #" + iter); iter += 1 })
+    val trees = trainer.train({
+      logger.info("Iteration #" + iter); iter += 1
+    })
     val end = System.currentTimeMillis()
     logger.info("Training complete in " + (end - start).toDouble / 1000 + " seconds")
     val treesJson = trees.toJson
@@ -69,12 +90,35 @@ object TrainRanking extends SerializableLogging {
   }
 }
 
-class TrainRankingConfig extends TrainClassificationConfig {
+class TrainRankingConfig extends CommandLineParameters {
+  var train: String = "train.tsv"
+  var labelColumnName: String = "#Label"
   var labelOrder: String = ""
+  var queryColumnName: String = "#Query"
+  var numIterations: Int = 100
+  var output: String = "trees.json"
+  var initialModel: String = _
+  var learningRate = 0.2
+  var leafCount = 10
+  var minLeafSize = 20
+  var rowSampleRate = 1.0
+  var featureSampleRate = 1.0
+  var withReplacement = false
 
-  override def usage = {
-    super.usage.takeWhile(_.required) ++
-      List(required("labelOrder", "CSV list of expected relevance labels, ordered from best to worst")) ++
-      super.usage.dropWhile(_.required)
+  def usage = {
+    required("train", "In TSV file to use for training") ::
+      optional("labelColumnName", "Column header for classification label") ::
+      required("labelOrder", "CSV list of expected relevance labels, ordered from worst to best") ::
+      optional("queryColumnName", "Column header for query") ::
+      required("numIterations", "Number of training iterations") ::
+      required("output", "Output file containing trained trees") ::
+      optional("initialModel", "File containing model for starting point") ::
+      optional("learningRate", "Learning rate for gradient descent") ::
+      optional("leafCount", "Number of leaf nodes per tree") ::
+      optional("minLeafSize", "Minimum number of instances per leaf node") ::
+      optional("rowSampleRate", "Number of rows to sample at each iteration") ::
+      optional("withReplacement", "Sample rows with replacement") ::
+      optional("featureSampleRate", "Number of features to sample at each iteration") ::
+      Nil
   }
 }

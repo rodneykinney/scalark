@@ -77,11 +77,9 @@ package object decisionTreeTraining {
       val labelIndex = columnNames.indexOf(labelColumnName)
       require(labelIndex >= 0, "No column found with name "+labelColumnName)
       val dropColumn = columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2).toSet
-      var rowId = -1
       for (line <- lines.drop(1)) yield {
         val fields = line.split('\t')
         val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toDouble)
-        rowId += 1
         val label = if (fields(labelIndex) == "1")
           true
         else if (fields(labelIndex) == "0")
@@ -90,7 +88,20 @@ package object decisionTreeTraining {
         LabeledRow(label, features = features)
       }
     }
-    def readQueryRows(labelOrder: IndexedSeq[String], labelColumnName:String = "#Label", queryColumnName: String = "#Query") = {
+    def readFeatures() = {
+      val lines = io.Source.fromFile(file).getLines.toBuffer
+      val columnNames = lines.head.split("\t")
+      val dropColumn = columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2).toSet
+      for (line <- lines.drop(1)) yield {
+        val fields = line.split('\t')
+        val features = (0 until fields.size).filter(!dropColumn(_)).map(fields(_).toDouble)
+        features
+      }
+    }
+    def readQueryRows(
+      labelOrder: IndexedSeq[String],
+      labelColumnName:String = "#Label",
+      queryColumnName: String = "#Query") = {
       val lines = io.Source.fromFile(file).getLines.toBuffer
       val columnNames = lines.head.split("\t")
       val labelIndex = columnNames.indexOf(labelColumnName)
@@ -98,11 +109,9 @@ package object decisionTreeTraining {
       val queryToId = mutable.HashMap.empty[String, Int]
       require(labelIndex >= 0, "No column found with name "+labelColumnName)
       val dropColumn = columnNames.zipWithIndex.filter { case (name, index) => name.startsWith("#") }.map(_._2).toSet
-      var rowId = -1
       val rows = for (line <- lines.drop(1)) yield {
         val fields = line.split('\t')
         val features = fields.indices.filter(!dropColumn(_)).map(fields(_).toDouble)
-        rowId += 1
         val label = {
           val l = labelOrder.indexOf(fields(labelIndex))
           require(l >= 0, s"Unrecognized label ${fields(labelIndex)}. Expected one of ${labelOrder.mkString("[",",","]")}")
@@ -111,7 +120,7 @@ package object decisionTreeTraining {
         val queryId = queryToId.getOrElseUpdate(fields(queryIndex), queryToId.size)
         LabeledQueryRow(queryId, features, label)
       }
-      rows.sortBy(r => (r.queryId, labelOrder.indexOf(r.label)))
+      rows.sortBy(r => (r.queryId, r.label))
     }
   }
 

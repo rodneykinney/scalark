@@ -28,32 +28,36 @@ object ScoreRows {
     if (!config.parse(args))
       System.exit(0)
 
-    apply(dataFile = config.data, modelFile = config.model, output = config.output)
+    apply(
+      dataFile = config.input,
+      modelFile = config.model,
+      output = config.output)
   }
-  def apply(dataFile: String, modelFile: String, output: String) = {
-    val rows = new File(dataFile).readRows()
-    val model = io.Source.fromFile(modelFile).getLines.mkString.asJson.convertTo[Model]
+  def apply(
+    dataFile: String,
+    modelFile: String,
+    output: String) = {
+    val rows = new File(dataFile).readFeatures()
+    val model = Source.fromFile(modelFile).mkString.parseJson.convertTo[Model]
     using(new PrintWriter(new FileWriter(output))) { writer =>
       val lines = Source.fromFile(dataFile).getLines.toList
       writer.println(s"${lines.head}\tScore")
       for ((row, line) <- rows.zip(lines.tail)) {
-        writer.println(s"$line\t${model.eval(row.features)}")
+        writer.println(s"$line\t${model.eval(row)}")
       }
-//      writer.println("#Label\tScore")
-//      for (row <- rows) writer.println(row.label+"\t"+model.eval(row.features))
     }
   }
 }
 
 class ScoreRowsConfig extends CommandLineParameters {
-  var data: String = _
+  var input: String = _
   var model: String = _
   var output: String = _
 
   def usage = {
-    required("data", "Input TSV containing features") ::
+    required("input", "Input TSV containing features") ::
       required("model", "Model file in JSON format") ::
-      required("output", "Output TSV containing scores") ::
+      required("output", "Output TSV with score column appended") ::
       Nil
   }
 }

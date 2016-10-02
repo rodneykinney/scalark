@@ -34,12 +34,12 @@ object TrainClassification extends SerializableLogging {
       featureSampleRate = config.featureSampleRate,
       sampleRowsWithReplacement = config.withReplacement)
 
-    this(trainConfig = sgbConfig, input = config.train, output = config.output, config.initialModel)
+    this(trainConfig = sgbConfig, input = config.train, labelColumnName = config.labelColumnName, output = config.output, config.initialModel)
   }
 
-  def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, output: String, initialModel: String) {
+  def apply(trainConfig: StochasticGradientBoostTrainConfig, input: String, labelColumnName: String, output: String, initialModel: String) {
     logger.info("Training configuration: " + trainConfig)
-    val rows = new java.io.File(input).readRows().toList
+    val rows = new java.io.File(input).readRows(labelColumnName = labelColumnName).toList
     val columns = rows.toSortedColumnData
     val labels = rows.map(_.asTrainable).toIndexedSeq
     logger.info("Read " + labels.size + " rows from " + input)
@@ -70,6 +70,7 @@ object TrainClassification extends SerializableLogging {
 
 class TrainClassificationConfig extends CommandLineParameters {
   var train: String = "train.tsv"
+  var labelColumnName: String = "#Label"
   var numIterations: Int = 100
   var output: String = "trees.json"
   var initialModel: String = _
@@ -82,6 +83,7 @@ class TrainClassificationConfig extends CommandLineParameters {
 
   def usage = {
     required("train", "In TSV file to use for training") ::
+      optional("labelColumName", "Column header for classification label") ::
       required("numIterations", "Number of training iterations") ::
       required("output", "Output file containing trained trees") ::
       optional("initialModel", "File containing model for starting point") ::
